@@ -79,6 +79,18 @@ Expected fields/categories:
 - before/after metadata where safe
 - timestamp
 
+
+## Implemented Profile Baseline
+
+ISSUE-027 implemented the first domain baseline migration in `backend/migrations/000002_user_profiles.sql`:
+
+- `teachers`, `students`, `staff_profiles`, `guardians`, and `student_guardians` are tenant-scoped.
+- Teacher/student/staff profiles link to `users(id)` for authentication, RBAC, and audit trails.
+- Guardians can optionally link to a login user, while still supporting non-login guardian contact records.
+- `student_guardians` uses composite tenant foreign keys so guardian/student links cannot cross tenant boundaries.
+- Tenant/status and relation lookup indexes support admin CRUD directories and future RBAC-scoped queries.
+- Only one primary guardian is allowed per tenant/student through a partial unique index.
+
 ## Academic Baseline
 
 Target model direction:
@@ -155,4 +167,4 @@ Every backend module that introduces or changes data contracts must update:
 
 ## Current Status
 
-Baseline only. Detailed DDL is intentionally deferred to backend implementation issues so it can be developed with TDD and integration tests.
+Foundation schema and user profile baseline have concrete migrations. Remaining domain areas are still implemented issue-by-issue with TDD and migration contract tests.

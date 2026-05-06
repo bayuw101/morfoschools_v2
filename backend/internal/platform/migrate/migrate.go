@@ -131,7 +131,21 @@ func parseVersion(name string) (int, error) {
 }
 
 func ResetLocalDev(ctx context.Context, db *sql.DB) error {
-	tables := []string{
+	for _, table := range resetLocalDevTables() {
+		if _, err := db.ExecContext(ctx, `DROP TABLE IF EXISTS `+table); err != nil {
+			return fmt.Errorf("drop %s: %w", table, err)
+		}
+	}
+	return nil
+}
+
+func resetLocalDevTables() []string {
+	return []string{
+		"student_guardians",
+		"guardians",
+		"staff_profiles",
+		"students",
+		"teachers",
 		"audit_events",
 		"user_roles",
 		"role_permissions",
@@ -145,10 +159,4 @@ func ResetLocalDev(ctx context.Context, db *sql.DB) error {
 		"tenants",
 		"schema_migrations",
 	}
-	for _, table := range tables {
-		if _, err := db.ExecContext(ctx, `DROP TABLE IF EXISTS `+table); err != nil {
-			return fmt.Errorf("drop %s: %w", table, err)
-		}
-	}
-	return nil
 }

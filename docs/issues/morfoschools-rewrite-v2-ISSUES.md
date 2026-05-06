@@ -780,7 +780,7 @@ Audit event writer
 **Implementation Notes:**
 
 - Added `internal/platform/middleware` with request ID, structured recovery logging, security headers, credentialed CORS/preflight handling, body size limit, tenant context resolution, and request-ID JSON error envelopes.
-- Integrated the stack in `internal/app/server.go` around existing CSRF/auth routes.
+- Added the stack as reusable platform middleware; `internal/app` still uses its original wrappers and should migrate to this package in the next backend wiring pass.
 - Documented order and responsibilities in `docs/backend/MIDDLEWARE_STACK.md`.
 - Added middleware tests for recovery/error envelopes, credentialed CORS preflight, context propagation, and body-size rejection.
 - Verified with Docker runtime proxy because host Go is unavailable: `docker run --rm -v "$PWD":/app -w /app golang:1.23-alpine go test ./...` and `go build ./...`.
@@ -816,7 +816,7 @@ Audit event writer
 
 - Added `internal/platform/httpx/response.go` with `WriteJSON`, `WriteError`, `ValidationError`, `FieldErrors`, validation builder helpers, and pagination parsing/meta helpers.
 - Error envelopes now include `code`, `message`, `requestId`, optional `fieldErrors`, optional `details`, plus transitional `error` mirroring `code` so the existing frontend normalizer remains compatible.
-- Bridged middleware `WriteError` to the shared `httpx` envelope.
+- Added shared `httpx` envelope helpers for upcoming handlers; middleware currently emits compatible JSON error fields and can be bridged directly in a follow-up.
 - Documented the contract in `docs/backend/API_RESPONSE_CONTRACT.md`.
 - Added `internal/platform/httpx/response_test.go` covering success envelopes, error envelopes, structured validation errors, and bounded pagination metadata.
 - Verified with Docker runtime proxy because host Go is unavailable: `gofmt`, `go test ./...`, and `go build ./...`.
@@ -885,13 +885,18 @@ docs/ai-tools/MANIFEST_TEMPLATE.md
 
 **Implementation Notes (2026-05-06):**
 
-- Added `backend/internal/testkit` with fluent fixture helpers for tenant, user, password, roles, permissions, and session setup.
-- Added RBAC helper `Fixture.Subject()` so tests can build `rbac.Subject` without repeating tenant/user/permission boilerplate.
+- Added `backend/internal/testkit` with deterministic tenant/user/session fixture helpers for early handler-boundary tests.
 - Added HTTP handler helpers: `NewJSONRequest`, `AttachAuth`, `AttachTenant`, `DecodeJSON`, and `AssertStatus`.
-- Added fake auth repository via `NewAuthRepository(fixture)` supporting login/session repository methods plus tenant switch and audit-event capture for handler-boundary tests.
-- Added optional integration-test DB helpers: `OpenTestDB(t, migrations)` uses `MORFOSCHOOLS_TEST_DATABASE_URL` and skips when unset; `TruncateTables` resets tables for DB-backed tests.
+- Documented that production handlers must move from test headers to trusted middleware/session context when Phase 2 auth lands.
 - Documented usage in `backend/internal/testkit/README.md`.
 - Verified with Docker runtime proxy because host Go is unavailable: `gofmt`, `go test ./...`, and `go build ./...`.
+
+
+**Phase 4 Re-Audit Note (2026-05-06):**
+
+- Rechecked Phase 4 after commit `ff87c37`; source tree only contains platform packages that actually exist: `internal/platform/middleware`, `internal/platform/httpx`, `internal/platform/docscontract`, and `internal/testkit`.
+- Corrected issue notes that overstated integration details from earlier handoff text; `internal/app` migration to shared middleware remains a follow-up and auth/RBAC/CSRF are intentionally Phase 2+.
+- Confirmed Phase 4 is suitable as architecture base for Phase 5 database migrations.
 
 ---
 
@@ -911,22 +916,22 @@ student_guardians
 
 **Acceptance Criteria:**
 
-- [ ] Tables are tenant-scoped where required.
-- [ ] Profiles link cleanly to users.
-- [ ] Guardians can link to students.
-- [ ] Constraints/indexes support CRUD and RBAC.
+- [x] Tables are tenant-scoped where required.
+- [x] Profiles link cleanly to users.
+- [x] Guardians can link to students.
+- [x] Constraints/indexes support CRUD and RBAC.
 
-**Implementation Notes (2026-05-06):**
+**Implementation Notes (2026-05-07):**
 
-- Added `backend/migrations/000005_user_profiles.sql` with `teachers`, `students`, `staff_profiles`, `guardians`, and `student_guardians`.
-- All profile tables are tenant-scoped and link to `users(id)` for login/RBAC/audit readiness from first implementation.
+- Added `backend/migrations/000002_user_profiles.sql` with `teachers`, `students`, `staff_profiles`, `guardians`, and `student_guardians` after a RED migration contract test.
+- All profile tables are tenant-scoped and link to `users(id)` for login/RBAC/audit readiness; guardians may also exist without login through nullable `user_id`.
 - Added per-tenant uniqueness for teacher/staff employee numbers, student numbers, guardian codes, and one profile per tenant/user.
 - Added `(tenant_id, id)` unique keys and composite foreign keys so `student_guardians` cannot link records across tenants.
 - Added CRUD/RBAC-friendly indexes for tenant/status directories plus student/guardian lookups.
 - Added partial unique index ensuring only one primary guardian per student per tenant.
-- Updated `docs/architecture/DATABASE_BASELINE.md` profile section to reflect the concrete migration.
+- Updated local dev reset table order so profile tables are dropped before auth/tenant foundation tables.
 - Added migration contract tests in `backend/internal/platform/migrate/profile_schema_test.go`.
-- Verified with Docker runtime proxy because host Go is unavailable: focused migration tests, applying all migrations against a temporary PostgreSQL 16 container, `go test ./...`, and `go build ./...`.
+- Verified focused migration tests, `go test ./...`, `go build ./...`, Docker backend rebuild/recreate, `/readyz`, frontend port `1666`, and live PostgreSQL schema/index inspection.
 
 ---
 
