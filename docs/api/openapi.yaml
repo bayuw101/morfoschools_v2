@@ -1,0 +1,76 @@
+openapi: 3.1.0
+info:
+  title: Morfoschools API
+  version: 0.1.0
+  description: Production rewrite API contract for Morfosis/Morfoschools.
+servers:
+  - url: http://localhost:8080
+paths:
+  /healthz:
+    get:
+      summary: Health check
+      responses:
+        '200':
+          description: Service is alive
+  /readyz:
+    get:
+      summary: Readiness check
+      responses:
+        '200':
+          description: Critical dependencies are ready
+        '503':
+          description: One or more dependencies are unavailable
+  /api/v1/auth/login:
+    post:
+      summary: Login with seeded or production user credentials
+      responses:
+        '200': { description: Session established }
+        '400': { description: Invalid request }
+        '401': { description: Invalid credentials }
+  /api/v1/auth/logout:
+    post:
+      summary: Revoke current browser session
+      security:
+        - morfoschools_session: []
+        - morfoschools_csrf: []
+      responses:
+        '204': { description: Session revoked }
+  /api/v1/auth/me:
+    get:
+      summary: Read current authenticated user, roles, permissions, tenant context
+      security:
+        - morfoschools_session: []
+      responses:
+        '200': { description: Current session context }
+        '401': { description: Missing or invalid session }
+  /api/v1/tenants/current/theme:
+    get:
+      summary: Read sanitized tenant theme bootstrap settings
+      security:
+        - morfoschools_session: []
+      responses:
+        '200': { description: Current tenant theme }
+components:
+  securitySchemes:
+    morfoschools_session:
+      type: apiKey
+      in: cookie
+      name: morfoschools_session
+    morfoschools_csrf:
+      type: apiKey
+      in: header
+      name: X-CSRF-Token
+  schemas:
+    ErrorEnvelope:
+      type: object
+      required: [code, message, requestId]
+      properties:
+        error: { type: string }
+        code: { type: string }
+        message: { type: string }
+        requestId: { type: string }
+        fieldErrors:
+          type: object
+          additionalProperties:
+            type: array
+            items: { type: string }
