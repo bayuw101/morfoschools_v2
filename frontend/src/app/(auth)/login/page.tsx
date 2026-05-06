@@ -73,10 +73,10 @@ export default function LoginPage() {
       <div className="absolute inset-0 -z-10 bg-white/72 backdrop-blur-[1.5px]" />
       <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.55),transparent_34%),linear-gradient(135deg,rgba(255,255,255,0.78)_0%,rgba(255,255,255,0.58)_52%,rgba(255,255,255,0.7)_100%)]" />
       <div className="relative mx-auto grid min-h-[calc(100vh-3rem)] max-w-7xl items-center gap-8 lg:grid-cols-[1.05fr_0.95fr]">
-        <section className="relative rounded-[40px] sm:p-8 lg:p-10">
+        <section className="relative overflow-hidden rounded-[40px] border border-white/70 bg-white/68 p-6 shadow-[0_24px_80px_rgba(9,17,28,0.12)] backdrop-blur-md sm:p-8 lg:p-10">
           <div className="absolute -right-12 -top-12 h-40 w-40 rounded-full bg-[color:var(--brand-soft)] blur-3xl" />
           <div className="relative">
-            <div className="mt-14 max-w-2xl">
+            <div className="max-w-2xl">
               <h1 className="mt-6 font-display text-5xl font-black leading-[0.95] tracking-[-0.055em] text-[color:var(--foreground)] sm:text-6xl lg:text-7xl">
                 Masuk ke LMS yang siap ujian nasional sekolah.
               </h1>

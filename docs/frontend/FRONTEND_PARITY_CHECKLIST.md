@@ -2,28 +2,28 @@
 
 ## Login
 
-- [ ] Two-column glass auth layout.
-- [ ] Logo lockup and prototype typography.
-- [ ] Floating fields.
-- [ ] Demo role/account actions.
-- [ ] Loading, disabled, and custom error states.
-- [ ] No native browser validation chrome.
+- [x] Two-column glass auth layout.
+- [x] Logo lockup and prototype typography.
+- [x] Floating fields.
+- [x] Demo role/account actions.
+- [x] Loading, disabled, and custom error states.
+- [x] No native browser validation chrome.
 
 ## Dashboard/Admin Shell
 
-- [ ] Dark shell background.
-- [ ] Prototype sidebar geometry.
-- [ ] Header/topbar with search/actions/session skeleton.
-- [ ] Rounded content container.
-- [ ] AI Agents sidecar toggled from header.
-- [ ] Loader/skeleton/empty/error examples.
+- [x] Dark shell background.
+- [x] Prototype sidebar geometry.
+- [x] Header/topbar with search/actions/session skeleton.
+- [x] Rounded content container.
+- [x] AI Agents sidecar toggled from header.
+- [x] Loader/skeleton/empty/error examples.
 
 ## UI Gallery
 
-- [ ] Tokens and typography.
-- [ ] Buttons/loading states.
-- [ ] Fields/selects/textarea.
-- [ ] Badges/alerts/tabs/panels/cards.
-- [ ] Modals/sheets/confirm dialog.
-- [ ] Skeleton/empty/error/list states.
-- [ ] App shell + AI sidecar preview.
+- [x] Tokens and typography.
+- [x] Buttons/loading states.
+- [x] Fields/selects/textarea.
+- [x] Badges/alerts/tabs/panels/cards.
+- [x] Modals/sheets/confirm dialog.
+- [x] Skeleton/empty/error/list states.
+- [x] App shell + AI sidecar preview.

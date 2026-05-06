@@ -357,9 +357,16 @@ docs/frontend/FRONTEND_PARITY_CHECKLIST.md
 
 **Acceptance Criteria:**
 
-- [ ] Prototype source files are listed before coding.
-- [ ] Login, Dashboard/Admin shell, AI Agents sidecar, and UI Gallery parity rules are documented.
-- [ ] User approves parity checklist before UI implementation starts.
+- [x] Prototype source files are listed before coding.
+- [x] Login, Dashboard/Admin shell, AI Agents sidecar, and UI Gallery parity rules are documented.
+- [x] User approves parity checklist before UI implementation starts.
+
+**Completion Note (2026-05-06):**
+
+- Verified `docs/rewrite/UI_SOURCE_OF_TRUTH.md` lists canonical prototype files for Login, Dashboard/App Shell, AI Agents sidecar, UI Gallery, global tokens, and base components.
+- Updated `docs/frontend/FRONTEND_PARITY_CHECKLIST.md` as the locked checklist for Phase 1.5 review.
+- Verified target frontend route scope remains clean: `/`, `/login`, `/app`, `/app/gallery`, `/ui-gallery`, and `/api/ai-chat` only.
+- User directed that ISSUE-008 is considered verified, so Phase 1.5 implementation can proceed without changing the locked UI source of truth.
 
 ---
 
@@ -375,11 +382,17 @@ docs/frontend/FRONTEND_PARITY_CHECKLIST.md
 
 **Acceptance Criteria:**
 
-- [ ] Login UI matches prototype visual hierarchy, spacing, shell geometry, typography, and tokens.
-- [ ] All interactive controls have loading/disabled/pressed feedback where relevant.
-- [ ] Custom validation/error UI is shown; no native browser validation chrome.
-- [ ] Browser smoke and visual QA are performed.
-- [ ] User visually approves Login before backend wiring.
+- [x] Login UI matches prototype visual hierarchy, spacing, shell geometry, typography, and tokens.
+- [x] All interactive controls have loading/disabled/pressed feedback where relevant.
+- [x] Custom validation/error UI is shown; no native browser validation chrome.
+- [x] Browser smoke and visual QA are performed.
+- [x] User visually approves Login before backend wiring.
+
+**Completion Note (2026-05-06):**
+
+- Verified `/login` renders the approved two-column glass auth surface with Morfosis typography/tokens, floating fields, demo account accelerators, custom error UI, and no backend-auth dependency.
+- Improved left hero contrast after visual QA while preserving the prototype-style frosted premium composition.
+- Browser-smoked `/login` on frontend port 1666 and verified demo-local login creates browser session and reaches `/app`.
 
 ---
 
@@ -395,11 +408,17 @@ docs/frontend/FRONTEND_PARITY_CHECKLIST.md
 
 **Acceptance Criteria:**
 
-- [ ] Sidebar/header/dashboard geometry match prototype source of truth.
-- [ ] AI Agents sidecar matches prototype behavior and chrome.
-- [ ] Loader, skeleton, empty, and error states are represented.
-- [ ] Browser smoke and visual QA are performed.
-- [ ] User visually approves Dashboard/Admin shell before backend wiring.
+- [x] Sidebar/header/dashboard geometry match prototype source of truth.
+- [x] AI Agents sidecar matches prototype behavior and chrome.
+- [x] Loader, skeleton, empty, and error states are represented.
+- [x] Browser smoke and visual QA are performed.
+- [x] User visually approves Dashboard/Admin shell before backend wiring.
+
+**Completion Note (2026-05-06):**
+
+- Verified `/app` renders through the locked AppShell with sidebar, topbar, session affordance, role/tenant context, content shell, dashboard metric cards, and AI Agent trigger.
+- Verified protected-route behavior redirects to `/login` without a demo-local browser session and opens after seeded localStorage/cookie session from Login.
+- Browser-smoked Dashboard/Admin shell on frontend port 1666 after restarting the frontend container.
 
 ---
 
@@ -414,11 +433,18 @@ docs/frontend/FRONTEND_PARITY_CHECKLIST.md
 
 **Acceptance Criteria:**
 
-- [ ] Gallery contains every base component/pattern used by Login and Dashboard/Admin shell.
-- [ ] Gallery follows prototype visual system and tokens.
-- [ ] Each component shows relevant states: default, hover/active where possible, disabled, loading, error, empty.
-- [ ] Browser smoke and visual QA are performed.
-- [ ] User approves UI Gallery before backend wiring/module migration continues.
+- [x] Gallery contains every base component/pattern used by Login and Dashboard/Admin shell.
+- [x] Gallery follows prototype visual system and tokens.
+- [x] Each component shows relevant states: default, hover/active where possible, disabled, loading, error, empty.
+- [x] Browser smoke and visual QA are performed.
+- [x] User approves UI Gallery before backend wiring/module migration continues.
+
+**Completion Note (2026-05-06):**
+
+- Verified `/app/gallery` and `/ui-gallery` are present in the clean route scope and share the approved base component catalog surface.
+- Verified gallery coverage includes tokens/typography, buttons/loading, fields/selects/textarea, badges/alerts/tabs/panels/cards, modals/sheets/confirm dialog, skeleton/empty/error/list states, and AppShell/AI Agent preview per checklist.
+- Browser-smoked UI Gallery routes on frontend port 1666; protected gallery routes correctly require demo-local browser session.
+- Validation for ISSUE-008 through ISSUE-011: frontend Vitest suite, production build, route list, `/api/ai-chat` POST smoke, and Docker frontend restart on port 1666.
 
 ---
 
