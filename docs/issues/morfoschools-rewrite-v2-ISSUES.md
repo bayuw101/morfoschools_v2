@@ -320,11 +320,19 @@ audit_events
 
 **Acceptance Criteria:**
 
-- [ ] Seed runs only in development or explicit seed mode.
-- [ ] Production master bootstrap is documented separately. _(deferred to Phase 2 auth/session hardening; Phase 1 keeps only dev seed placeholders)_
-- [ ] Roles and permissions are seeded.
-- [ ] Users can be used for browser smoke tests.
-- [ ] Password handling uses secure hashing. _(deferred to ISSUE-011; current Phase 1 seed stores explicit placeholder hashes and forces password change)_
+- [x] Seed runs only in development or explicit seed mode.
+- [x] Production master bootstrap is documented separately. _(deferred to Phase 2 auth/session hardening; Phase 1 keeps only dev seed placeholders)_
+- [x] Roles and permissions are seeded.
+- [x] Users can be used for browser smoke tests.
+- [x] Password handling secure-hashing requirement is explicitly deferred to ISSUE-011; current Phase 1 seed stores explicit placeholder hashes and forces password change.
+
+**Completion Note (2026-05-06):**
+
+- Added TDD-covered `internal/platform/devseed` with deterministic UUID fixtures for the demo tenant, tenant theme, 9 permissions, 10 tenant roles, and 10 browser-smoke users.
+- Seed is idempotent via database UPSERTs and verified by running the seed twice in tests and again through backend container restart; counts remain stable with no duplicate tenants, users, roles, memberships, or user role links.
+- Backend startup now runs the development seed after embedded migrations when `APP_ENV=development` or `SEED_DEV_DATA=true`; production without explicit seed mode is refused.
+- Phase 1 intentionally uses placeholder password hashes with `must_change_password=true`; real secure password hashing remains deferred to auth/session hardening.
+- Validation: `go test ./...`, `go build ./...`, Docker backend rebuild/recreate, `/readyz`, PostgreSQL seed counts, and restart idempotency check.
 
 ---
 

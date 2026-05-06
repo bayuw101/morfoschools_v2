@@ -13,6 +13,7 @@ import (
 
 	morfoschools "morfoschools/backend"
 	"morfoschools/backend/internal/app"
+	"morfoschools/backend/internal/platform/devseed"
 	"morfoschools/backend/internal/platform/migrate"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
@@ -38,6 +39,13 @@ func main() {
 		}
 		if err := migrate.NewRunner(db, migrations).Run(ctx); err != nil {
 			log.Fatalf("run migrations: %v", err)
+		}
+		if err := devseed.Run(ctx, db, devseed.Config{
+			Enabled: env("SEED_DEV_DATA", "") == "true" || env("APP_ENV", "development") == "development",
+			AppEnv:  env("APP_ENV", "development"),
+			Driver:  "pgx",
+		}); err != nil {
+			log.Fatalf("seed development data: %v", err)
 		}
 	}
 
