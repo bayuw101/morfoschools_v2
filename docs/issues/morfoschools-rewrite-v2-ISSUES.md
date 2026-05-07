@@ -577,12 +577,20 @@ Completion note 2026-05-07:
 
 **Acceptance Criteria:**
 
-- [ ] Tenant theme supports preset + primary color + accent color + logo.
-- [ ] Theme values are validated against safe color formats.
-- [ ] No raw CSS injection is allowed.
-- [ ] Valkey caches tenant theme by tenant/version.
-- [ ] Fallback Morfosis default theme exists.
-- [ ] Contract for server-injected CSS variables is documented.
+- [x] Tenant theme supports preset + primary color + accent color + logo.
+- [x] Theme values are validated against safe color formats.
+- [x] No raw CSS injection is allowed.
+- [x] Valkey caches tenant theme by tenant/version.
+- [x] Fallback Morfosis default theme exists.
+- [x] Contract for server-injected CSS variables is documented.
+
+Completion note 2026-05-07:
+- Added authenticated `GET /api/v1/tenants/current/theme` backend route with tenant-context resolution from the server-side session; master admin must select an effective tenant before reading tenant theme.
+- Added tenant theme sanitization for preset, safe hex/OKLCH colors, HTTPS-only logo URLs, and allowlisted CSS variable names only.
+- Added theme version cache contract with Valkey-backed cache key format `tenant_theme:{tenantId}:v{version}` plus test/local memory fallback.
+- Added Morfosis default theme fallback and OpenAPI schema coverage for `TenantTheme`.
+- Documented frontend/no-flicker CSS variable contract in `docs/frontend/THEME_CONTRACT.md`.
+- Validation: `go test ./internal/app`, `go test ./...`, `go build ./...`, and Docker backend `/readyz` verification after rebuild/recreate.
 
 ---
 

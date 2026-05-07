@@ -1,6 +1,35 @@
 package app
 
-import "testing"
+import (
+	"net/http"
+	"net/http/httptest"
+	"strings"
+	"testing"
+)
+
+func TestCurrentTenantThemeRequiresAuthenticatedSession(t *testing.T) {
+	a := New(Config{}, Dependencies{})
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/tenants/current/theme", nil)
+
+	a.Handler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusUnauthorized || !strings.Contains(rec.Body.String(), `"code":"unauthenticated"`) {
+		t.Fatalf("expected unauthenticated theme response, got %d body=%s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestLoadTenantThemeFallsBackToMorfosisDefaultWithoutDatabase(t *testing.T) {
+	a := New(Config{}, Dependencies{})
+
+	theme, err := a.loadTenantTheme(t.Context(), "tenant-1")
+	if err != nil {
+		t.Fatalf("load fallback theme: %v", err)
+	}
+	if theme.Preset != "morfoschools-default" || theme.PrimaryColor == "" || theme.AccentColor == "" || theme.CacheKey != "" {
+		t.Fatalf("unexpected fallback theme: %#v", theme)
+	}
+}
 
 func TestValidateTenantThemeRejectsUnsafeColorInjection(t *testing.T) {
 	theme := tenantTheme{Preset: "custom", PrimaryColor: "red; background:url(javascript:alert(1))", AccentColor: "oklch(0.68 0.18 70)", LogoURL: ""}
