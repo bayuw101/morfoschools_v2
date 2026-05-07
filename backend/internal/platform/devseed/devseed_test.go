@@ -107,6 +107,33 @@ func TestRunUpdatesLegacyUserRowsByDeterministicID(t *testing.T) {
 	assertCount(t, db, "users", len(Users()))
 }
 
+func TestSeedIncludesUserManagementPermissionsForIssue032(t *testing.T) {
+	permissions := map[string]bool{}
+	for _, permission := range Permissions() {
+		permissions[permission.Code] = true
+	}
+	for _, code := range []string{"users:read", "users:write"} {
+		if !permissions[code] {
+			t.Fatalf("expected ISSUE-032 permission %q to be seeded", code)
+		}
+	}
+
+	roles := map[string]map[string]bool{}
+	for _, role := range Roles() {
+		roles[role.Code] = map[string]bool{}
+		for _, permission := range role.Permissions {
+			roles[role.Code][permission] = true
+		}
+	}
+	for _, roleCode := range []string{"master_admin", "school_admin"} {
+		for _, permissionCode := range []string{"users:read", "users:write"} {
+			if !roles[roleCode][permissionCode] {
+				t.Fatalf("expected role %q to include %q for ISSUE-032", roleCode, permissionCode)
+			}
+		}
+	}
+}
+
 func TestSeedRolesMatchFrontendContract(t *testing.T) {
 	allowed := map[string]bool{
 		"master_admin":     true,

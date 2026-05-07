@@ -61,6 +61,7 @@ func (a *App) Handler() http.Handler {
 	a.registerAuthRoutes(mux)
 	a.registerPlatformRoutes(mux)
 	a.registerThemeRoutes(mux)
+	a.registerUserRoutes(mux)
 	return a.wrap(mux)
 }
 

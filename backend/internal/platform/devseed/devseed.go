@@ -56,13 +56,15 @@ func Permissions() []Permission {
 		{ID: "20000000-0000-7000-8000-000000000009", Code: "content:review", Description: "Review learning content."},
 		{ID: "20000000-0000-7000-8000-000000000010", Code: "tenants:read", Description: "Read tenant directory for platform support."},
 		{ID: "20000000-0000-7000-8000-000000000011", Code: "tenants:switch", Description: "Switch effective tenant context for audited support."},
+		{ID: "20000000-0000-7000-8000-000000000012", Code: "users:read", Description: "Read tenant user directory."},
+		{ID: "20000000-0000-7000-8000-000000000013", Code: "users:write", Description: "Create, update, deactivate, and assign tenant users."},
 	}
 }
 
 func Roles() []Role {
 	return []Role{
-		{ID: "30000000-0000-7000-8000-000000000001", Code: "master_admin", Name: "Master Admin", Description: "Development platform administrator.", Permissions: []string{"platform:admin", "tenant:admin", "tenants:read", "tenants:switch"}},
-		{ID: "30000000-0000-7000-8000-000000000002", Code: "school_admin", Name: "School Admin", Description: "Development school administrator.", Permissions: []string{"tenant:admin", "academic:manage"}},
+		{ID: "30000000-0000-7000-8000-000000000001", Code: "master_admin", Name: "Master Admin", Description: "Development platform administrator.", Permissions: []string{"platform:admin", "tenant:admin", "tenants:read", "tenants:switch", "users:read", "users:write"}},
+		{ID: "30000000-0000-7000-8000-000000000002", Code: "school_admin", Name: "School Admin", Description: "Development school administrator.", Permissions: []string{"tenant:admin", "academic:manage", "users:read", "users:write"}},
 		{ID: "30000000-0000-7000-8000-000000000003", Code: "academic_admin", Name: "Academic Admin", Description: "Development academic administrator.", Permissions: []string{"academic:manage"}},
 		{ID: "30000000-0000-7000-8000-000000000004", Code: "teacher", Name: "Teacher", Description: "Development teacher.", Permissions: []string{"courses:teach"}},
 		{ID: "30000000-0000-7000-8000-000000000005", Code: "student", Name: "Student", Description: "Development student.", Permissions: []string{"learning:access"}},

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { existsSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, readFileSync, renameSync, rmSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -10,6 +10,7 @@ const command = process.argv[2];
 const rawArgs = process.argv.slice(3);
 const appPort = "1666";
 const nextDir = path.join(root, process.env.NEXT_DIST_DIR ?? ".next");
+const defaultNextDir = path.join(root, ".next");
 
 function withoutPortArgs(values) {
   const cleaned = [];
@@ -31,10 +32,29 @@ const args = ["dev", "start"].includes(command)
   ? [...withoutPortArgs(rawArgs), "--port", appPort]
   : rawArgs;
 
+function removeDir(dir, reason) {
+  if (!existsSync(dir)) {
+    return;
+  }
+  console.log(`[next-safe] removing ${path.basename(dir)} (${reason})`);
+  try {
+    rmSync(dir, { recursive: true, force: true });
+    return;
+  } catch (error) {
+    if (error?.code !== "EACCES" && error?.code !== "EPERM") {
+      throw error;
+    }
+  }
+
+  const quarantineDir = `${dir}.stale-${Date.now()}`;
+  console.warn(`[next-safe] ${path.basename(dir)} is not removable by the current user; quarantining it as ${path.basename(quarantineDir)} so stale Tailwind artifacts are not scanned.`);
+  renameSync(dir, quarantineDir);
+}
+
 function removeNext(reason) {
-  if (existsSync(nextDir)) {
-    console.log(`[next-safe] removing .next (${reason})`);
-    rmSync(nextDir, { recursive: true, force: true });
+  removeDir(nextDir, reason);
+  if (nextDir !== defaultNextDir) {
+    removeDir(defaultNextDir, `${reason}; remove stale default .next while using ${path.basename(nextDir)}`);
   }
 }
 

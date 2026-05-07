@@ -23,8 +23,25 @@ const result = spawnSync(process.execPath, ["scripts/next-safe.mjs", "dev", "--h
   encoding: "utf8",
 });
 
+mkdirSync(path.join(tempFrontend, ".next", "server"), { recursive: true });
+writeFileSync(path.join(tempFrontend, ".next", "server", "bad.css"), '.\\[\\&amp\\;_svg\\]\\:h-3\\.5 { &amp; svg { height: 1rem; } }\n');
+
+const ampResult = spawnSync(process.execPath, ["scripts/next-safe.mjs", "build", "--help"], {
+  cwd: tempFrontend,
+  env: { ...process.env, NEXT_DIST_DIR: ".next-protected", PATH: `${path.join(repoRoot, "node_modules", ".bin")}:${process.env.PATH}` },
+  encoding: "utf8",
+});
+
+if (ampResult.stderr.includes("Unknown word &amp") || ampResult.stdout.includes("Unknown word &amp")) {
+  console.error("next-safe build should not scan stale Tailwind &amp artifacts in default .next while using alternate NEXT_DIST_DIR");
+  console.error(ampResult.stdout);
+  console.error(ampResult.stderr);
+  rmSync(tempRoot, { recursive: true, force: true });
+  process.exit(1);
+}
+
 if (existsSync(path.join(tempFrontend, ".next"))) {
-  console.error("next-safe dev should remove stale .next before starting Next.js");
+  console.error("next-safe dev/build should remove or quarantine stale .next before starting Next.js");
   console.error(result.stdout);
   console.error(result.stderr);
   rmSync(tempRoot, { recursive: true, force: true });

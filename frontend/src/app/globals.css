@@ -413,6 +413,11 @@ body {
   display: none;
 }
 
+.morfoschools-icon-button svg {
+  height: calc(var(--spacing) * 3.5);
+  width: calc(var(--spacing) * 3.5);
+}
+
 @keyframes shimmer {
   100% {
     transform: translateX(100%);

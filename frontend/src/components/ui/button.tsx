@@ -65,7 +65,7 @@ function ButtonIconBox({
   return (
     <span
       className={cn(
-        "inline-flex shrink-0 items-center justify-center rounded-lg ring-1 transition-colors [&_svg]:h-3.5 [&_svg]:w-3.5",
+        "morfoschools-icon-button inline-flex shrink-0 items-center justify-center rounded-lg ring-1 transition-colors",
         size === "lg"
           ? "h-8 w-8 rounded-xl"
           : size === "sm"
