@@ -84,6 +84,29 @@ func TestRunSeedsDeterministicDevelopmentIdentityGraphIdempotently(t *testing.T)
 	}
 }
 
+func TestRunUpdatesLegacyUserRowsByDeterministicID(t *testing.T) {
+	db := openSeedTestDB(t)
+	ctx := t.Context()
+
+	_, err := db.Exec(`INSERT INTO users (id, email, display_name, status, created_at, updated_at) VALUES (?, ?, ?, 'active', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`, "40000000-0000-7000-8000-000000000001", "staff@morfoschools.local", "Legacy Staff", "active")
+	if err != nil {
+		t.Fatalf("insert legacy user: %v", err)
+	}
+
+	if err := Run(ctx, db, Config{Enabled: true, AppEnv: "development"}); err != nil {
+		t.Fatalf("seed should converge legacy deterministic IDs: %v", err)
+	}
+
+	var email, displayName string
+	if err := db.QueryRow(`SELECT email, display_name FROM users WHERE id = ?`, "40000000-0000-7000-8000-000000000001").Scan(&email, &displayName); err != nil {
+		t.Fatalf("read converged user: %v", err)
+	}
+	if email != "master.admin@morfoschools.local" || displayName != "Master Admin" {
+		t.Fatalf("legacy user was not converged: email=%s displayName=%s", email, displayName)
+	}
+	assertCount(t, db, "users", len(Users()))
+}
+
 func TestSeedRolesMatchFrontendContract(t *testing.T) {
 	allowed := map[string]bool{
 		"master_admin":     true,

@@ -31,6 +31,8 @@ services:
       DATABASE_URL: ${DATABASE_URL:-postgres://morfoschools:change-me@pgbouncer:5432/morfoschools?sslmode=disable}
       VALKEY_URL: ${VALKEY_URL:-redis://valkey:6379/0}
       NATS_URL: ${NATS_URL:-nats://nats:4222}
+      SEED_DEV_DATA: ${SEED_DEV_DATA:-true}
+      RESET_LOCAL_DEV_DB: ${RESET_LOCAL_DEV_DB:-false}
     depends_on:
       pgbouncer:
         condition: service_started

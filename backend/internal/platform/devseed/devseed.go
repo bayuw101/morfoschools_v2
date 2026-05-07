@@ -193,7 +193,7 @@ func seedUsers(ctx context.Context, db *sql.DB, dialect sqlDialect) error {
 		rolesByCode[role.Code] = role.ID
 	}
 	for _, user := range Users() {
-		_, err := execDialect(ctx, db, dialect, `INSERT INTO users (id, email, display_name, status, created_at, updated_at) VALUES (?, ?, ?, 'active', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) ON CONFLICT (email) DO UPDATE SET display_name = excluded.display_name, status = excluded.status, updated_at = CURRENT_TIMESTAMP`, user.ID, user.Email, user.DisplayName)
+		_, err := execDialect(ctx, db, dialect, `INSERT INTO users (id, email, display_name, status, created_at, updated_at) VALUES (?, ?, ?, 'active', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) ON CONFLICT (id) DO UPDATE SET email = excluded.email, display_name = excluded.display_name, status = excluded.status, updated_at = CURRENT_TIMESTAMP`, user.ID, user.Email, user.DisplayName)
 		if err != nil {
 			return fmt.Errorf("seed user %s: %w", user.Email, err)
 		}
