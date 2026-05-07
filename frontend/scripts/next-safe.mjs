@@ -9,7 +9,7 @@ const root = path.resolve(__dirname, "..");
 const command = process.argv[2];
 const rawArgs = process.argv.slice(3);
 const appPort = "1666";
-const nextDir = path.join(root, ".next");
+const nextDir = path.join(root, process.env.NEXT_DIST_DIR ?? ".next");
 
 function withoutPortArgs(values) {
   const cleaned = [];

@@ -12,6 +12,7 @@ const tempFrontend = path.join(tempRoot, "frontend");
 mkdirSync(path.join(tempFrontend, "scripts"), { recursive: true });
 mkdirSync(path.join(tempFrontend, "src", "app"), { recursive: true });
 mkdirSync(path.join(tempFrontend, ".next", "server", "chunks"), { recursive: true });
+mkdirSync(path.join(tempFrontend, ".next-alt", "server", "chunks"), { recursive: true });
 writeFileSync(path.join(tempFrontend, "postcss.config.mjs"), 'export default { plugins: { "@tailwindcss/postcss": {} } };\n');
 writeFileSync(path.join(tempFrontend, "src", "app", "globals.css"), '@import "tailwindcss";\n');
 writeFileSync(path.join(tempFrontend, "scripts", "next-safe.mjs"), readFileSync(path.join(repoRoot, "scripts", "next-safe.mjs"), "utf8"));
@@ -30,5 +31,19 @@ if (existsSync(path.join(tempFrontend, ".next"))) {
   process.exit(1);
 }
 
+const altResult = spawnSync(process.execPath, ["scripts/next-safe.mjs", "build", "--help"], {
+  cwd: tempFrontend,
+  env: { ...process.env, NEXT_DIST_DIR: ".next-alt", PATH: `${path.join(repoRoot, "node_modules", ".bin")}:${process.env.PATH}` },
+  encoding: "utf8",
+});
+
+if (existsSync(path.join(tempFrontend, ".next-alt"))) {
+  console.error("next-safe build should remove stale NEXT_DIST_DIR when configured");
+  console.error(altResult.stdout);
+  console.error(altResult.stderr);
+  rmSync(tempRoot, { recursive: true, force: true });
+  process.exit(1);
+}
+
 rmSync(tempRoot, { recursive: true, force: true });
-console.log("[next-safe.test] dev command removes stale .next before startup.");
+console.log("[next-safe.test] dev/build commands remove stale configured Next dist dirs before startup.");

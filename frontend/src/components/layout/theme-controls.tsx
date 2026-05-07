@@ -1,94 +1,17 @@
 "use client";
 
 import * as React from "react";
-import { Check, MoonStar, Palette, SunMedium } from "lucide-react";
+import { Check, Loader2, MoonStar, Palette, SunMedium } from "lucide-react";
 import { cn } from "@/lib/cn";
-
-type ThemeMode = "light" | "dark";
-type PaletteName =
-  | "morfosis"
-  | "tokyo-night"
-  | "monokai"
-  | "blue"
-  | "dracula"
-  | "nord"
-  | "catppuccin"
-  | "rose-pine"
-  | "gruvbox"
-  | "solarized"
-  | "github-dark"
-  | "one-dark";
-
-const storageKey = "morfoschools-theme-v1";
-
-const palettes: Array<{ value: PaletteName; label: string; swatch: string }> = [
-  { value: "morfosis", label: "Morfosis Blue", swatch: "bg-[#486b9c]" },
-  { value: "tokyo-night", label: "Tokyo Night", swatch: "bg-[#7aa2f7]" },
-  { value: "monokai", label: "Monokai", swatch: "bg-[#a6e22e]" },
-  { value: "blue", label: "Blue", swatch: "bg-[#2563eb]" },
-  { value: "dracula", label: "Dracula", swatch: "bg-[#bd93f9]" },
-  { value: "nord", label: "Nord", swatch: "bg-[#88c0d0]" },
-  { value: "catppuccin", label: "Catppuccin Mocha", swatch: "bg-[#cba6f7]" },
-  { value: "rose-pine", label: "Rosé Pine", swatch: "bg-[#ebbcba]" },
-  { value: "gruvbox", label: "Gruvbox", swatch: "bg-[#d79921]" },
-  { value: "solarized", label: "Solarized", swatch: "bg-[#268bd2]" },
-  { value: "github-dark", label: "GitHub Dark", swatch: "bg-[#2f81f7]" },
-  { value: "one-dark", label: "One Dark", swatch: "bg-[#61afef]" },
-];
-
-function applyTheme(mode: ThemeMode, palette: PaletteName) {
-  document.documentElement.dataset.theme = mode;
-  document.documentElement.dataset.palette = palette;
-  document.documentElement.style.colorScheme = mode;
-}
-
-function readInitialTheme(): { mode: ThemeMode; palette: PaletteName } {
-  if (typeof window === "undefined")
-    return { mode: "dark", palette: "morfosis" };
-
-  const stored = window.localStorage.getItem(storageKey);
-  if (stored) {
-    try {
-      const parsed = JSON.parse(stored) as Partial<{
-        mode: ThemeMode;
-        palette: PaletteName;
-      }>;
-      return {
-        mode: parsed.mode === "light" ? "light" : "dark",
-        palette: palettes.some((palette) => palette.value === parsed.palette)
-          ? parsed.palette!
-          : "morfosis",
-      };
-    } catch {
-      // ignore invalid localStorage payload
-    }
-  }
-
-  const prefersDark =
-    window.matchMedia?.("(prefers-color-scheme: dark)").matches ?? true;
-  return { mode: prefersDark ? "dark" : "light", palette: "morfosis" };
-}
+import { useTheme } from "@/lib/theme-provider";
+import { PALETTES, type PaletteName, type ThemeMode } from "@/lib/theme";
 
 export function ThemeControls() {
-  const [mounted, setMounted] = React.useState(false);
-  const [mode, setMode] = React.useState<ThemeMode>("dark");
-  const [palette, setPalette] = React.useState<PaletteName>("morfosis");
+  const { preference, setMode, setPalette, tenantThemeLoading, tenantThemeError } = useTheme();
   const [open, setOpen] = React.useState(false);
   const rootRef = React.useRef<HTMLDivElement | null>(null);
-
-  React.useEffect(() => {
-    const initial = readInitialTheme();
-    setMode(initial.mode);
-    setPalette(initial.palette);
-    applyTheme(initial.mode, initial.palette);
-    setMounted(true);
-  }, []);
-
-  React.useEffect(() => {
-    if (!mounted) return;
-    applyTheme(mode, palette);
-    window.localStorage.setItem(storageKey, JSON.stringify({ mode, palette }));
-  }, [mode, mounted, palette]);
+  const mode = preference.mode;
+  const palette = preference.palette;
 
   React.useEffect(() => {
     if (!open) return;
@@ -119,7 +42,9 @@ export function ThemeControls() {
         onClick={() => setOpen((value) => !value)}
       >
         <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[color:var(--brand-soft)] text-[color:var(--brand-strong)]">
-          {mode === "dark" ? (
+          {tenantThemeLoading ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : mode === "dark" ? (
             <MoonStar className="h-4 w-4" />
           ) : (
             <SunMedium className="h-4 w-4" />
@@ -159,15 +84,22 @@ export function ThemeControls() {
           </div>
 
           <div className="mt-2 rounded-[18px] bg-[color:var(--surface-subtle)] p-2">
-            <p className="px-2 pb-2 text-[11px] font-bold uppercase tracking-[0.16em] text-[color:var(--muted-foreground)]">
-              Palette presets
-            </p>
+            <div className="flex items-center justify-between gap-2 px-2 pb-2">
+              <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[color:var(--muted-foreground)]">
+                Palette presets
+              </p>
+              {tenantThemeError ? (
+                <span className="rounded-full bg-[color:var(--danger-soft)] px-2 py-0.5 text-[10px] font-bold text-[color:var(--danger)]">
+                  Tenant theme offline
+                </span>
+              ) : null}
+            </div>
             <div className="space-y-1">
-              {palettes.map((option) => (
+              {PALETTES.map((option) => (
                 <button
                   key={option.value}
                   type="button"
-                  onClick={() => setPalette(option.value)}
+                  onClick={() => setPalette(option.value as PaletteName)}
                   className={cn(
                     "flex w-full items-center gap-3 rounded-2xl px-3 py-2 text-left text-xs font-bold transition-colors",
                     palette === option.value

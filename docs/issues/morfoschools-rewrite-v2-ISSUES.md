@@ -639,11 +639,18 @@ Completion note 2026-05-07:
 
 **Acceptance Criteria:**
 
-- [ ] Dark/light mode works.
-- [ ] Preference persists locally in browser.
-- [ ] Tenant colors apply consistently.
-- [ ] Initial paint has no obvious color blinking.
-- [ ] Theme toggle has loading/interaction polish if async changes are involved.
+- [x] Dark/light mode works.
+- [x] Preference persists locally in browser.
+- [x] Tenant colors apply consistently.
+- [x] Initial paint has no obvious color blinking.
+- [x] Theme toggle has loading/interaction polish if async changes are involved.
+
+**Completion Note (2026-05-07):**
+
+- Added frontend theme utilities and `ThemeProvider` with sanitized tenant CSS-variable application, local dark/light + palette persistence via `morfoschools-theme-v1`, and session-key-aware tenant theme refresh.
+- Refactored `ThemeControls` to use the provider context, show async loading feedback, and surface tenant-theme offline state without duplicating storage logic.
+- Added TDD coverage for theme normalization, sanitization, backend fetch contract, local preference application, and tenant-theme refresh when session context changes.
+- Validation: `npm test`, `npm run test:next-safe`, and `NEXT_DIST_DIR=.next-hermes-build npm run build` passed. Normal `.next` remained root-owned in this environment, so alternate build dir was used and cleaned after verification.
 
 ---
 
