@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"crypto/rand"
+	"database/sql"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -13,9 +14,10 @@ import (
 )
 
 type Config struct {
-	ServiceName string
-	Port        string
-	LogLevel    string
+	ServiceName   string
+	Port          string
+	LogLevel      string
+	SecureCookies bool
 }
 
 type DependencyCheck struct {
@@ -24,15 +26,17 @@ type DependencyCheck struct {
 }
 
 type Dependencies struct {
+	DB       *sql.DB
 	Database DependencyCheck
 	Valkey   DependencyCheck
 	NATS     DependencyCheck
 }
 
 type App struct {
-	cfg    Config
-	deps   Dependencies
-	logger *slog.Logger
+	cfg         Config
+	deps        Dependencies
+	logger      *slog.Logger
+	loginLimits *loginLimiter
 }
 
 type contextKey string
@@ -46,13 +50,15 @@ func New(cfg Config, deps Dependencies) *App {
 	if cfg.Port == "" {
 		cfg.Port = "8080"
 	}
-	return &App{cfg: cfg, deps: deps, logger: slog.New(slog.NewJSONHandler(os.Stdout, nil))}
+	return &App{cfg: cfg, deps: deps, logger: slog.New(slog.NewJSONHandler(os.Stdout, nil)), loginLimits: newLoginLimiter()}
 }
 
 func (a *App) Handler() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/healthz", a.healthz)
 	mux.HandleFunc("/readyz", a.readyz)
+	a.registerAuthRoutes(mux)
+	a.registerPlatformRoutes(mux)
 	return a.wrap(mux)
 }
 
@@ -95,7 +101,30 @@ func (a *App) readyz(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *App) wrap(next http.Handler) http.Handler {
-	return requestID(recovery(a.logger)(securityHeaders(next)))
+	return requestID(recovery(a.logger)(securityHeaders(cors(next))))
+}
+
+func cors(next http.Handler) http.Handler {
+	allowed := map[string]bool{
+		"http://localhost:1666": true,
+		"http://127.0.0.1:1666": true,
+	}
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		origin := r.Header.Get("Origin")
+		if allowed[origin] {
+			w.Header().Set("Access-Control-Allow-Origin", origin)
+			w.Header().Set("Access-Control-Allow-Credentials", "true")
+			w.Header().Add("Vary", "Origin")
+		}
+		if r.Method == http.MethodOptions {
+			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PATCH, DELETE, OPTIONS")
+			w.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type, X-Request-ID, X-Tenant-ID, X-CSRF-Token, Idempotency-Key")
+			w.Header().Set("Access-Control-Max-Age", "600")
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
 }
 
 func requestID(next http.Handler) http.Handler {

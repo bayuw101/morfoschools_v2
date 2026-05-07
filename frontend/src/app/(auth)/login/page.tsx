@@ -12,38 +12,32 @@ import {
   ShieldCheck,
   Sparkles,
 } from "lucide-react";
-import { createDemoSession, storeSession } from "@/lib/auth";
+import { loginWithPassword } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { FloatingInput } from "@/components/ui/floating-input";
 import { Alert } from "@/components/ui/alert";
 import { LogoLockup } from "@/components/ui/logo-lockup";
 
-const DEMO_TENANT_ID = "00000000-0000-4000-8000-000000000001";
+const DEMO_TENANT_ID = "11111111-1111-7111-8111-111111111111";
+const DEV_PASSWORD = "morfosis123";
 
 const demoAccounts = [
-  { label: "Admin", email: "admin@morfosis.demo", role: "Operasional sekolah" },
-  {
-    label: "Guru Biologi",
-    email: "guru.biologi@morfosis.demo",
-    role: "Monitor ujian & grading essay",
-  },
-  {
-    label: "Siswa Alya",
-    email: "alya@morfosis.demo",
-    role: "Exam gate, autosave, result",
-  },
-  {
-    label: "Siswa Bima",
-    email: "bima@morfosis.demo",
-    role: "Exam gate, autosave, result",
-  },
+  { label: "Master Admin", email: "master.admin@morfoschools.local", role: "Platform admin + act-as" },
+  { label: "School Admin", email: "school.admin@morfoschools.local", role: "Operasional sekolah" },
+  { label: "Academic Admin", email: "academic.admin@morfoschools.local", role: "Akademik & kurikulum" },
+  { label: "Teacher", email: "teacher@morfoschools.local", role: "Kelas, ujian, grading" },
+  { label: "Student", email: "student@morfoschools.local", role: "Exam gate, result" },
+  { label: "Parent", email: "parent@morfoschools.local", role: "Progress anak" },
+  { label: "Finance", email: "finance@morfoschools.local", role: "Billing & pembayaran" },
+  { label: "Proctor", email: "proctor@morfoschools.local", role: "Monitoring ujian" },
+  { label: "Content Reviewer", email: "reviewer@morfoschools.local", role: "Review materi" },
 ];
 
 export default function LoginPage() {
   const router = useRouter();
   const [tenantId, setTenantId] = React.useState(DEMO_TENANT_ID);
-  const [email, setEmail] = React.useState("guru.biologi@morfosis.demo");
-  const [password, setPassword] = React.useState("morfosis123");
+  const [email, setEmail] = React.useState("teacher@morfoschools.local");
+  const [password, setPassword] = React.useState(DEV_PASSWORD);
   const [error, setError] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState(false);
 
@@ -52,8 +46,7 @@ export default function LoginPage() {
     setError(null);
     setLoading(true);
     try {
-      const session = createDemoSession({ tenantId, email, password });
-      storeSession(session);
+      await loginWithPassword({ tenantId, email, password });
       router.push("/app");
     } catch (err) {
       const message = err instanceof Error ? err.message : "login_failed";
@@ -81,9 +74,8 @@ export default function LoginPage() {
                 Masuk ke LMS yang siap ujian nasional sekolah.
               </h1>
               <p className="mt-6 max-w-xl text-lg leading-8 text-[color:var(--muted-foreground)]">
-                Untuk scope awal rewrite, login ini sengaja demo-local: membuat
-                session browser yang eksplisit tanpa memanggil backend auth.
-                Backend auth asli akan masuk vertical slice terpisah.
+                Login ini memakai backend auth asli: cookie httpOnly, CSRF token,
+                RBAC server-side, dan session cache browser tanpa menyimpan raw token.
               </p>
             </div>
 
@@ -97,12 +89,12 @@ export default function LoginPage() {
                 {
                   icon: ServerCog,
                   title: "BE clean",
-                  desc: "Auth API belum dipalsukan.",
+                  desc: "Backend auth aktif.",
                 },
                 {
                   icon: LockKeyhole,
-                  title: "Demo session",
-                  desc: "Cookie + localStorage eksplisit.",
+                  title: "Secure session",
+                  desc: "httpOnly cookie + CSRF.",
                 },
               ].map((item) => (
                 <div
@@ -191,28 +183,22 @@ export default function LoginPage() {
                   disabled={loading}
                   onClick={async () => {
                     setEmail(account.email);
-                    setPassword("morfosis123");
-                    setTenantId(DEMO_TENANT_ID);
+                    setPassword(DEV_PASSWORD);
+                    const isMasterAdmin = account.email === "master.admin@morfoschools.local";
+                    setTenantId(isMasterAdmin ? "" : DEMO_TENANT_ID);
 
-                    // Auto login
                     setError(null);
                     setLoading(true);
                     try {
-                      const session = createDemoSession({
-                        tenantId: DEMO_TENANT_ID,
+                      await loginWithPassword({
+                        ...(isMasterAdmin ? {} : { tenantId: DEMO_TENANT_ID }),
                         email: account.email,
-                        password: "morfosis123",
+                        password: DEV_PASSWORD,
                       });
-                      storeSession(session);
                       router.push("/app");
                     } catch (err) {
-                      const message =
-                        err instanceof Error ? err.message : "login_failed";
-                      setError(
-                        message === "invalid_demo_credentials"
-                          ? "Akun demo tidak cocok. Gunakan tenant demo dan password morfosis123."
-                          : message,
-                      );
+                      const message = err instanceof Error ? err.message : "login_failed";
+                      setError(message);
                     } finally {
                       setLoading(false);
                     }

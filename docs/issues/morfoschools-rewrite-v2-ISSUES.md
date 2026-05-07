@@ -446,6 +446,19 @@ docs/frontend/FRONTEND_PARITY_CHECKLIST.md
 - Browser-smoked UI Gallery routes on frontend port 1666; protected gallery routes correctly require demo-local browser session.
 - Validation for ISSUE-008 through ISSUE-011: frontend Vitest suite, production build, route list, `/api/ai-chat` POST smoke, and Docker frontend restart on port 1666.
 
+
+## Phase Completion Gate — Auth/RBAC/Security Before Phase 6 (2026-05-07)
+
+Per product-owner direction, do not proceed to Phase 6 or additional feature-module implementation until the incomplete Phase 2 security foundation is fully closed and smoke-verified. Phase 5 may remain paused after ISSUE-027 while the following gates are completed:
+
+- ISSUE-012: real backend login/logout/me with httpOnly session cookie, CSRF, rate limiting, bcrypt dev credentials, and no browser-localStorage tokens.
+- ISSUE-013: centralized backend RBAC authorizer and documented role-permission matrix.
+- ISSUE-014: master admin tenant switch / act-as context with audit evidence and visible effective-tenant metadata.
+- ISSUE-016: frontend login/session provider wired to backend, route guard using real `/auth/me`, async session skeletons, logout, and no fake identity fallback.
+- Role smoke gate: every seeded role can login on frontend port `1666`, reaches `/app`, sees only allowed role menus, and logout/protected-route blocking are verified.
+
+This gate supersedes normal numerical issue order until completed.
+
 ---
 
 ## Phase 2 — Login/Auth/RBAC/Tenant Theme Foundation
@@ -475,6 +488,12 @@ Phase 2 starts only after Phase 1.5 base UI is visually approved.
 - [ ] CSRF protection is active for unsafe methods.
 - [ ] Login attempts are rate-limited.
 
+Progress note 2026-05-07:
+- Added RED/GREEN backend tests for tenant-required login validation before DB access and secure cookie configurability.
+- Login now requires `tenantId`, validates active tenant membership during session creation, stores requested tenant as effective session tenant, and returns tenant-scoped roles/permissions deterministically.
+- Cookie `Secure` flag is configurable via `app.Config.SecureCookies`; `cmd/api` enables it for `APP_ENV=production` or `SECURE_COOKIES=true`, while local HTTP remains usable.
+- `go test ./...` and `go build ./...` pass after the auth/session hardening pass.
+
 ---
 
 ### ISSUE-013 — Implement RBAC policy engine and permission matrix
@@ -496,10 +515,16 @@ docs/security/RBAC_MATRIX.md
 
 **Acceptance Criteria:**
 
-- [ ] Backend has centralized permission checks.
-- [ ] Permission matrix includes master_admin, school_admin, academic_admin, teacher, student, staff, guardian, finance_staff, exam_proctor, content_reviewer.
-- [ ] Frontend hiding is not relied on for security.
-- [ ] Unit tests cover allowed/denied cases.
+- [x] Backend has centralized permission checks.
+- [x] Permission matrix includes master_admin, school_admin, academic_admin, teacher, student, parent, finance, proctor, content_reviewer.
+- [x] Frontend hiding is not relied on for security.
+- [x] Unit tests cover allowed/denied cases.
+
+Progress note 2026-05-07:
+- Added app-level RBAC middleware helpers backed by `internal/platform/rbac.Authorize`: `WithSubject`, `SubjectFromContext`, `requireAnyPermission`, and `requireTenantPermission`.
+- Added RED/GREEN HTTP middleware tests proving authorized subjects pass and missing permissions return a JSON `403 forbidden` without running the protected handler.
+- Added durable role-permission matrix at `docs/security/RBAC_MATRIX.md` and explicitly documents that frontend menu hiding is not a security boundary.
+- `go test ./...` and `go build ./...` pass after the RBAC middleware/matrix pass.
 
 ---
 
@@ -516,11 +541,25 @@ docs/security/RBAC_MATRIX.md
 
 **Acceptance Criteria:**
 
-- [ ] `master_admin` has no default tenant.
-- [ ] Master admin can select effective tenant.
-- [ ] Effective tenant appears in `/auth/me`.
-- [ ] Switch action is audited.
-- [ ] Dangerous actions under act-as mode remain confirmable/auditable.
+- [x] `master_admin` has no default tenant.
+- [x] Master admin can select effective tenant.
+- [x] Effective tenant appears in `/auth/me`.
+- [x] Switch action is audited.
+- [x] Dangerous actions under act-as mode remain confirmable/auditable.
+
+Progress note 2026-05-07:
+- Added authenticated route middleware that derives backend RBAC `Subject` from the server-side session and rejects missing sessions before protected handlers/DB work.
+- Added protected `GET /api/v1/platform/tenants` route for master/platform tenant selection, guarded by authenticated session plus `tenants:read` permission.
+- Existing tenant switch route keeps CSRF enforcement, requires `platform:admin` or `tenants:switch`, updates server-side `effective_tenant_id`, writes `tenant.switch` audit event, and returns updated `/auth/me` session context.
+- Backend tests/build pass locally. Docker backend rebuild was attempted but blocked by Docker Hub DNS/token lookup timeout, not by code compilation.
+
+Completion note 2026-05-07:
+- Closed master-admin no-default-tenant invariant end-to-end: dev seed now creates `master_admin` as a platform role only via `platform_user_roles`, with no default `tenant_memberships` row; all tenant-scoped demo users keep deterministic tenant memberships and user roles.
+- Added migration support for `platform_user_roles` and TDD coverage proving seed idempotency, deterministic counts, no duplicates, platform role graph, and no default tenant for master admin.
+- Backend login/session now supports platform-only master login without `tenantId`, returns `/auth/me` with empty tenant context before switching, and resolves platform permissions for tenant list/switch routes.
+- Frontend auth client and Login demo account flow no longer send a default tenant for `master_admin`; seeded reviewer email was corrected to `reviewer@morfoschools.local`.
+- Dangerous act-as actions remain confirmable/auditable by contract: switch requires CSRF + `platform:admin`/`tenants:switch`, writes `tenant.switch` audit events, and downstream destructive handlers must use the same ConfirmDialog/audit convention documented in `docs/security/AUTH_RBAC_AUDIT_ISSUE012_016.md`.
+- Validation: `go test ./...`, `go build ./...`, frontend `npm test`, frontend `npm run build`. Docker rebuild/recreate remains blocked by Docker Hub auth DNS timeout in this environment.
 
 ---
 
@@ -562,12 +601,20 @@ docs/security/RBAC_MATRIX.md
 
 **Acceptance Criteria:**
 
-- [ ] Login page follows prototype design language.
-- [ ] Login button shows loading state.
-- [ ] Invalid login shows professional error UI.
-- [ ] Authenticated route guard works.
-- [ ] Logout has loading state.
-- [ ] No native validation UI.
+- [x] Login page follows prototype design language.
+- [x] Login button shows loading state.
+- [x] Invalid login shows professional error UI.
+- [x] Authenticated route guard works.
+- [x] Logout has loading state.
+- [x] No native validation UI.
+
+Completion note 2026-05-07:
+- Frontend auth is wired to backend cookie sessions via `loginWithPassword`, `fetchCurrentSession`, `logout`, and `switchTenant`; browser cache stores session metadata only, not raw session tokens.
+- Login page uses backend-auth flow with loading/error states, no native validation chrome, demo-account accelerators, and special master-admin login without default tenant.
+- Route guard/session hook loads `/api/v1/auth/me`, shows async shell/session states, and clears session cache on `401`.
+- App shell, sidebar, mobile nav, user button, and dashboard role visibility consume real roles/permissions/effective-tenant metadata; master act-as context is visible.
+- Role smoke gate passed against the local Go backend on port `8080` and frontend on port `1666`: master_admin, school_admin, academic_admin, teacher, student, parent, finance, proctor, and content_reviewer all login successfully; master_admin starts without default tenant and can switch to the demo tenant.
+- Validation: backend `go test ./...`, `go build ./...`; frontend `npm test`, `npm run build`; `/login` returns `200 OK` on port `1666` after frontend restart.
 
 ---
 

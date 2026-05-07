@@ -6,12 +6,14 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+
+	"morfoschools/backend/internal/platform/secure"
 )
 
 const (
 	DemoTenantID   = "11111111-1111-7111-8111-111111111111"
 	DemoTenantCode = "morfoschools-demo"
-	passwordHash   = "dev-placeholder-hash-change-me"
+	DevPassword    = "morfosis123"
 )
 
 type Config struct {
@@ -52,22 +54,27 @@ func Permissions() []Permission {
 		{ID: "20000000-0000-7000-8000-000000000007", Code: "finance:manage", Description: "Manage finance placeholders."},
 		{ID: "20000000-0000-7000-8000-000000000008", Code: "exams:proctor", Description: "Proctor exams and monitor sessions."},
 		{ID: "20000000-0000-7000-8000-000000000009", Code: "content:review", Description: "Review learning content."},
+		{ID: "20000000-0000-7000-8000-000000000010", Code: "tenants:read", Description: "Read tenant directory for platform support."},
+		{ID: "20000000-0000-7000-8000-000000000011", Code: "tenants:switch", Description: "Switch effective tenant context for audited support."},
 	}
 }
 
 func Roles() []Role {
 	return []Role{
-		{ID: "30000000-0000-7000-8000-000000000001", Code: "master_admin", Name: "Master Admin", Description: "Development platform administrator.", Permissions: []string{"platform:admin", "tenant:admin"}},
+		{ID: "30000000-0000-7000-8000-000000000001", Code: "master_admin", Name: "Master Admin", Description: "Development platform administrator.", Permissions: []string{"platform:admin", "tenant:admin", "tenants:read", "tenants:switch"}},
 		{ID: "30000000-0000-7000-8000-000000000002", Code: "school_admin", Name: "School Admin", Description: "Development school administrator.", Permissions: []string{"tenant:admin", "academic:manage"}},
 		{ID: "30000000-0000-7000-8000-000000000003", Code: "academic_admin", Name: "Academic Admin", Description: "Development academic administrator.", Permissions: []string{"academic:manage"}},
 		{ID: "30000000-0000-7000-8000-000000000004", Code: "teacher", Name: "Teacher", Description: "Development teacher.", Permissions: []string{"courses:teach"}},
 		{ID: "30000000-0000-7000-8000-000000000005", Code: "student", Name: "Student", Description: "Development student.", Permissions: []string{"learning:access"}},
-		{ID: "30000000-0000-7000-8000-000000000006", Code: "staff", Name: "Staff", Description: "Development staff.", Permissions: []string{"learning:access"}},
-		{ID: "30000000-0000-7000-8000-000000000007", Code: "guardian", Name: "Guardian", Description: "Development guardian.", Permissions: []string{"guardian:view"}},
-		{ID: "30000000-0000-7000-8000-000000000008", Code: "finance_staff", Name: "Finance Staff", Description: "Development finance staff placeholder.", Permissions: []string{"finance:manage"}},
-		{ID: "30000000-0000-7000-8000-000000000009", Code: "exam_proctor", Name: "Exam Proctor", Description: "Development exam proctor.", Permissions: []string{"exams:proctor"}},
+		{ID: "30000000-0000-7000-8000-000000000011", Code: "parent", Name: "Parent", Description: "Development parent/guardian.", Permissions: []string{"guardian:view"}},
+		{ID: "30000000-0000-7000-8000-000000000012", Code: "finance", Name: "Finance", Description: "Development finance staff placeholder.", Permissions: []string{"finance:manage"}},
+		{ID: "30000000-0000-7000-8000-000000000013", Code: "proctor", Name: "Proctor", Description: "Development exam proctor.", Permissions: []string{"exams:proctor"}},
 		{ID: "30000000-0000-7000-8000-000000000010", Code: "content_reviewer", Name: "Content Reviewer", Description: "Development content reviewer.", Permissions: []string{"content:review"}},
 	}
+}
+
+func devPasswordHash() string {
+	return secure.FormatPasswordHash(DevPassword, []byte("morfoschools-dev"), 210000)
 }
 
 func Users() []User {
@@ -77,10 +84,9 @@ func Users() []User {
 		{ID: "40000000-0000-7000-8000-000000000003", Email: "academic.admin@morfoschools.local", DisplayName: "Academic Admin", RoleCode: "academic_admin"},
 		{ID: "40000000-0000-7000-8000-000000000004", Email: "teacher@morfoschools.local", DisplayName: "Teacher Demo", RoleCode: "teacher"},
 		{ID: "40000000-0000-7000-8000-000000000005", Email: "student@morfoschools.local", DisplayName: "Student Demo", RoleCode: "student"},
-		{ID: "40000000-0000-7000-8000-000000000006", Email: "staff@morfoschools.local", DisplayName: "Staff Demo", RoleCode: "staff"},
-		{ID: "40000000-0000-7000-8000-000000000007", Email: "guardian@morfoschools.local", DisplayName: "Guardian Demo", RoleCode: "guardian"},
-		{ID: "40000000-0000-7000-8000-000000000008", Email: "finance@morfoschools.local", DisplayName: "Finance Staff Demo", RoleCode: "finance_staff"},
-		{ID: "40000000-0000-7000-8000-000000000009", Email: "proctor@morfoschools.local", DisplayName: "Exam Proctor Demo", RoleCode: "exam_proctor"},
+		{ID: "40000000-0000-7000-8000-000000000006", Email: "parent@morfoschools.local", DisplayName: "Parent Demo", RoleCode: "parent"},
+		{ID: "40000000-0000-7000-8000-000000000007", Email: "finance@morfoschools.local", DisplayName: "Finance Demo", RoleCode: "finance"},
+		{ID: "40000000-0000-7000-8000-000000000008", Email: "proctor@morfoschools.local", DisplayName: "Proctor Demo", RoleCode: "proctor"},
 		{ID: "40000000-0000-7000-8000-000000000010", Email: "reviewer@morfoschools.local", DisplayName: "Content Reviewer Demo", RoleCode: "content_reviewer"},
 	}
 }
@@ -186,16 +192,27 @@ func seedUsers(ctx context.Context, db *sql.DB, dialect sqlDialect) error {
 	for _, role := range Roles() {
 		rolesByCode[role.Code] = role.ID
 	}
-	for i, user := range Users() {
+	for _, user := range Users() {
 		_, err := execDialect(ctx, db, dialect, `INSERT INTO users (id, email, display_name, status, created_at, updated_at) VALUES (?, ?, ?, 'active', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) ON CONFLICT (email) DO UPDATE SET display_name = excluded.display_name, status = excluded.status, updated_at = CURRENT_TIMESTAMP`, user.ID, user.Email, user.DisplayName)
 		if err != nil {
 			return fmt.Errorf("seed user %s: %w", user.Email, err)
 		}
-		_, err = execDialect(ctx, db, dialect, `INSERT INTO password_credentials (user_id, password_hash, must_change_password, password_changed_at, created_at, updated_at) VALUES (?, ?, 'true', NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) ON CONFLICT (user_id) DO UPDATE SET password_hash = excluded.password_hash, must_change_password = excluded.must_change_password, updated_at = CURRENT_TIMESTAMP`, user.ID, passwordHash)
+		_, err = execDialect(ctx, db, dialect, `INSERT INTO password_credentials (user_id, password_hash, must_change_password, password_changed_at, created_at, updated_at) VALUES (?, ?, 'true', NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) ON CONFLICT (user_id) DO UPDATE SET password_hash = excluded.password_hash, must_change_password = excluded.must_change_password, updated_at = CURRENT_TIMESTAMP`, user.ID, devPasswordHash())
 		if err != nil {
 			return fmt.Errorf("seed credential %s: %w", user.Email, err)
 		}
-		membershipID := fmt.Sprintf("50000000-0000-7000-8000-%012d", i+1)
+		if user.RoleCode == "master_admin" {
+			_, err = execDialect(ctx, db, dialect, `DELETE FROM tenant_memberships WHERE user_id = ?`, user.ID)
+			if err != nil {
+				return fmt.Errorf("remove master default membership %s: %w", user.Email, err)
+			}
+			_, err = execDialect(ctx, db, dialect, `INSERT INTO platform_user_roles (user_id, role_id, created_at) VALUES (?, ?, CURRENT_TIMESTAMP) ON CONFLICT (user_id, role_id) DO NOTHING`, user.ID, rolesByCode[user.RoleCode])
+			if err != nil {
+				return fmt.Errorf("seed platform user role %s: %w", user.Email, err)
+			}
+			continue
+		}
+		membershipID := strings.Replace(user.ID, "40000000-", "50000000-", 1)
 		_, err = execDialect(ctx, db, dialect, `INSERT INTO tenant_memberships (id, tenant_id, user_id, status, created_at, updated_at) VALUES (?, ?, ?, 'active', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) ON CONFLICT (tenant_id, user_id) DO UPDATE SET status = excluded.status, updated_at = CURRENT_TIMESTAMP`, membershipID, DemoTenantID, user.ID)
 		if err != nil {
 			return fmt.Errorf("seed membership %s: %w", user.Email, err)

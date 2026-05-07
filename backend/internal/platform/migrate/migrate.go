@@ -147,6 +147,7 @@ func resetLocalDevTables() []string {
 		"students",
 		"teachers",
 		"audit_events",
+		"platform_user_roles",
 		"user_roles",
 		"role_permissions",
 		"permissions",

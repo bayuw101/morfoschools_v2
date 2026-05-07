@@ -4,16 +4,18 @@ import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Loader2 } from "lucide-react";
-import { primaryNavigation } from "@/config/navigation";
+import { visiblePrimaryNavigation } from "@/config/navigation";
 import { cn } from "@/lib/cn";
+import { useAuthSession } from "@/lib/use-auth-session";
 
 export function MobileNav() {
   const pathname = usePathname();
+  const { session, loading } = useAuthSession();
   const [pendingRoute, setPendingRoute] = React.useState<string | null>(null);
 
   React.useEffect(() => setPendingRoute(null), [pathname]);
 
-  const visibleNavigation = primaryNavigation.slice(0, 5);
+  const visibleNavigation = loading ? [] : visiblePrimaryNavigation(session).slice(0, 5);
 
   return (
     <nav className="fixed inset-x-4 bottom-4 z-40 flex items-center justify-between rounded-[24px] border border-[color:var(--border-strong)] bg-[color:var(--surface)] px-2 py-2 shadow-[0_18px_40px_rgba(17,32,51,0.18)] backdrop-blur-xl md:hidden">

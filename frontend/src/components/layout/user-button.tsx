@@ -9,7 +9,8 @@ import {
   ShieldCheck,
   UserRound,
 } from "lucide-react";
-import { clearSession, getSession, type AuthSession } from "@/lib/auth";
+import { logout } from "@/lib/auth";
+import { useAuthSession } from "@/lib/use-auth-session";
 import { cn } from "@/lib/cn";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -23,11 +24,8 @@ function getInitials(label: string) {
 export function UserButton() {
   const router = useRouter();
   const [open, setOpen] = React.useState(false);
-  const [session, setSession] = React.useState<AuthSession | null | undefined>(
-    undefined,
-  );
+  const { session, loading: isLoadingSession } = useAuthSession();
   const rootRef = React.useRef<HTMLDivElement>(null);
-  const isLoadingSession = session === undefined;
   const resolvedName = session?.name ?? "";
   const resolvedHandle = session?.email?.split("@")[0] ?? "";
   const resolvedEmail = session?.email ?? "";
@@ -36,8 +34,6 @@ export function UserButton() {
   const initials = getInitials(resolvedName);
 
   React.useEffect(() => {
-    setSession(getSession());
-
     function handlePointerDown(event: MouseEvent) {
       if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
     }
@@ -116,7 +112,7 @@ export function UserButton() {
               {
                 icon: ShieldCheck,
                 title: "Session status",
-                desc: session ? "Authenticated via backend." : "Mock session.",
+                desc: session ? "Authenticated via backend." : "Belum login.",
               },
               { icon: KeyRound, title: "Tenant", desc: resolvedTenant },
             ].map((item) => (
@@ -142,8 +138,8 @@ export function UserButton() {
           <div className="mt-2 border-t border-[color:var(--border)] pt-2">
             <button
               type="button"
-              onClick={() => {
-                clearSession();
+              onClick={async () => {
+                await logout().catch(() => undefined);
                 router.push("/login");
               }}
               className="flex w-full items-center gap-3 rounded-[18px] px-3 py-3 text-left text-[color:var(--danger)] transition-colors hover:bg-[color:var(--danger-soft)]"

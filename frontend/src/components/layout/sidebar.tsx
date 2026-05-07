@@ -5,17 +5,19 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { appRoutes } from "@/config/routes";
-import { primaryNavigation } from "@/config/navigation";
+import { visiblePrimaryNavigation } from "@/config/navigation";
 import { cn } from "@/lib/cn";
+import { useAuthSession } from "@/lib/use-auth-session";
 import { LogoLockup } from "@/components/ui/logo-lockup";
 
 export function Sidebar() {
   const pathname = usePathname();
+  const { session, loading } = useAuthSession();
   const [pendingRoute, setPendingRoute] = React.useState<string | null>(null);
 
   React.useEffect(() => setPendingRoute(null), [pathname]);
 
-  const visibleNavigation = primaryNavigation;
+  const visibleNavigation = loading ? [] : visiblePrimaryNavigation(session);
 
   return (
     <aside className="ml-1 fixed inset-y-0 left-0 z-40 hidden w-[66px] flex-col items-center bg-[color:var(--shell)] px-3 py-4 md:flex">

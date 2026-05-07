@@ -50,12 +50,14 @@ func main() {
 	}
 
 	cfg := app.Config{
-		ServiceName: "morfoschools-api",
-		Port:        env("PORT", "8080"),
-		LogLevel:    env("LOG_LEVEL", "info"),
+		ServiceName:   "morfoschools-api",
+		Port:          env("PORT", "8080"),
+		LogLevel:      env("LOG_LEVEL", "info"),
+		SecureCookies: env("SECURE_COOKIES", env("APP_ENV", "development")) == "true" || env("APP_ENV", "development") == "production",
 	}
 
 	a := app.New(cfg, app.Dependencies{
+		DB:       db,
 		Database: app.DependencyCheck{Name: "database", Check: dbPingCheck(db)},
 		Valkey:   app.DependencyCheck{Name: "valkey", Check: tcpCheckFromURL(env("VALKEY_URL", "redis://valkey:6379/0"), "6379")},
 		NATS:     app.DependencyCheck{Name: "nats", Check: tcpCheckFromURL(env("NATS_URL", "nats://nats:4222"), "4222")},
