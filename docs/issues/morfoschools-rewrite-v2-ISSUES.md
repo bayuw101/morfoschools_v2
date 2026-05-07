@@ -1126,11 +1126,20 @@ exam_grade_results
 
 **Acceptance Criteria:**
 
-- [ ] Materialized eligibility is supported.
-- [ ] Inbox/shock absorber path is supported.
-- [ ] Essay and short-answer questions include correct/expected answer fields.
-- [ ] Optional rubric metadata is supported or planned.
-- [ ] Exam critical path avoids heavy joins.
+- [x] Materialized eligibility is supported.
+- [x] Inbox/shock absorber path is supported.
+- [x] Essay and short-answer questions include correct/expected answer fields.
+- [x] Optional rubric metadata is supported or planned.
+- [x] Exam critical path avoids heavy joins.
+
+**Completion Note (2026-05-07):**
+
+- Added RED/GREEN migration contract coverage for exam schema in `backend/internal/platform/migrate/exams_schema_test.go`.
+- Added `backend/migrations/000007_exams.sql` with exam authoring, section/question/options, targeting, gate windows, prerequisites, materialized eligibility, attempts/responses, Postgres submission inbox, receipts, integrity events, and grading tables.
+- `exam_eligible_students` materializes tenant/exam/student eligibility at publish-time with a gate snapshot so runtime gate checks can avoid heavy academic joins.
+- `exam_submission_inbox` uses tenant-scoped idempotency keys, durable JSON payloads, and pending/failed partial index as the Postgres-side shock absorber before relay/worker processing.
+- Short-answer and essay questions include `correct_answer_text` plus `expected_answer_rubric` JSONB from first implementation for future manual/AI-assisted grading.
+- Reset-local-dev drop order now includes all exam tables before course/academic/profile/auth foundation tables.
 
 **Implementation Notes (2026-05-06):**
 
