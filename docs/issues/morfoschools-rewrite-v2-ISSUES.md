@@ -481,18 +481,22 @@ Phase 2 starts only after Phase 1.5 base UI is visually approved.
 
 **Acceptance Criteria:**
 
-- [ ] Login succeeds with seeded users.
-- [ ] Logout revokes session.
-- [ ] `/auth/me` returns user, roles, permissions, and tenant context.
-- [ ] Browser tokens are not stored in localStorage.
-- [ ] CSRF protection is active for unsafe methods.
-- [ ] Login attempts are rate-limited.
+- [x] Login succeeds with seeded users.
+- [x] Logout revokes session.
+- [x] `/auth/me` returns user, roles, permissions, and tenant context.
+- [x] Browser tokens are not stored in localStorage.
+- [x] CSRF protection is active for unsafe methods.
+- [x] Login attempts are rate-limited.
 
-Progress note 2026-05-07:
+**Completion Note (2026-05-07):**
+
 - Added RED/GREEN backend tests for tenant-required login validation before DB access and secure cookie configurability.
-- Login now requires `tenantId`, validates active tenant membership during session creation, stores requested tenant as effective session tenant, and returns tenant-scoped roles/permissions deterministically.
+- Login accepts seeded backend users, validates active tenant membership for tenant-scoped roles, supports platform-only master-admin login, stores only hashed session tokens server-side, and returns tenant-scoped roles/permissions deterministically from `/auth/me`.
+- Logout requires the double-submit CSRF token, revokes the server-side session by hashed cookie token, and expires both session and CSRF cookies.
+- Browser session auth uses an httpOnly `morfoschools_session` cookie plus readable CSRF cookie; frontend localStorage stores only UI session metadata under `morfoschools_session_cache`, not a bearer/session token.
+- Login rate limiting is active in the backend in-memory foundation limiter; production multi-instance/shared limiter remains a later hardening concern, not a Phase 2 blocker.
 - Cookie `Secure` flag is configurable via `app.Config.SecureCookies`; `cmd/api` enables it for `APP_ENV=production` or `SECURE_COOKIES=true`, while local HTTP remains usable.
-- `go test ./...` and `go build ./...` pass after the auth/session hardening pass.
+- Validation re-run during source-of-truth audit: backend `go test ./...`, backend `go build ./...`, and frontend `npm test` pass.
 
 ---
 
@@ -520,7 +524,8 @@ docs/security/RBAC_MATRIX.md
 - [x] Frontend hiding is not relied on for security.
 - [x] Unit tests cover allowed/denied cases.
 
-Progress note 2026-05-07:
+**Completion Note (2026-05-07):**
+
 - Added app-level RBAC middleware helpers backed by `internal/platform/rbac.Authorize`: `WithSubject`, `SubjectFromContext`, `requireAnyPermission`, and `requireTenantPermission`.
 - Added RED/GREEN HTTP middleware tests proving authorized subjects pass and missing permissions return a JSON `403 forbidden` without running the protected handler.
 - Added durable role-permission matrix at `docs/security/RBAC_MATRIX.md` and explicitly documents that frontend menu hiding is not a security boundary.
@@ -547,13 +552,14 @@ Progress note 2026-05-07:
 - [x] Switch action is audited.
 - [x] Dangerous actions under act-as mode remain confirmable/auditable.
 
-Progress note 2026-05-07:
+**Completion Note (2026-05-07):**
+
 - Added authenticated route middleware that derives backend RBAC `Subject` from the server-side session and rejects missing sessions before protected handlers/DB work.
 - Added protected `GET /api/v1/platform/tenants` route for master/platform tenant selection, guarded by authenticated session plus `tenants:read` permission.
 - Existing tenant switch route keeps CSRF enforcement, requires `platform:admin` or `tenants:switch`, updates server-side `effective_tenant_id`, writes `tenant.switch` audit event, and returns updated `/auth/me` session context.
 - Backend tests/build pass locally. Docker backend rebuild was attempted but blocked by Docker Hub DNS/token lookup timeout, not by code compilation.
 
-Completion note 2026-05-07:
+**Completion Note (2026-05-07):**
 - Closed master-admin no-default-tenant invariant end-to-end: dev seed now creates `master_admin` as a platform role only via `platform_user_roles`, with no default `tenant_memberships` row; all tenant-scoped demo users keep deterministic tenant memberships and user roles.
 - Added migration support for `platform_user_roles` and TDD coverage proving seed idempotency, deterministic counts, no duplicates, platform role graph, and no default tenant for master admin.
 - Backend login/session now supports platform-only master login without `tenantId`, returns `/auth/me` with empty tenant context before switching, and resolves platform permissions for tenant list/switch routes.
@@ -584,7 +590,7 @@ Completion note 2026-05-07:
 - [x] Fallback Morfosis default theme exists.
 - [x] Contract for server-injected CSS variables is documented.
 
-Completion note 2026-05-07:
+**Completion Note (2026-05-07):**
 - Added authenticated `GET /api/v1/tenants/current/theme` backend route with tenant-context resolution from the server-side session; master admin must select an effective tenant before reading tenant theme.
 - Added tenant theme sanitization for preset, safe hex/OKLCH colors, HTTPS-only logo URLs, and allowlisted CSS variable names only.
 - Added theme version cache contract with Valkey-backed cache key format `tenant_theme:{tenantId}:v{version}` plus test/local memory fallback.
@@ -616,7 +622,7 @@ Completion note 2026-05-07:
 - [x] Logout has loading state.
 - [x] No native validation UI.
 
-Completion note 2026-05-07:
+**Completion Note (2026-05-07):**
 - Frontend auth is wired to backend cookie sessions via `loginWithPassword`, `fetchCurrentSession`, `logout`, and `switchTenant`; browser cache stores session metadata only, not raw session tokens.
 - Login page uses backend-auth flow with loading/error states, no native validation chrome, demo-account accelerators, and special master-admin login without default tenant.
 - Route guard/session hook loads `/api/v1/auth/me`, shows async shell/session states, and clears session cache on `401`.
