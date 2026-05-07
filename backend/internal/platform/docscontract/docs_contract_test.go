@@ -11,7 +11,7 @@ func TestOpenAPIAndManifestContractsExist(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, required := range []string{"openapi:", "/api/v1/auth/login", "morfoschools_session", "ErrorEnvelope"} {
+	for _, required := range []string{"openapi:", "/api/v1/auth/login", "/api/v1/tenants/current/theme", "TenantTheme", "morfoschools_session", "ErrorEnvelope"} {
 		if !strings.Contains(string(openapi), required) {
 			t.Fatalf("openapi missing %q", required)
 		}

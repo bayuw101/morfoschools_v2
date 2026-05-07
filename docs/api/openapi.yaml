@@ -46,10 +46,24 @@ paths:
   /api/v1/tenants/current/theme:
     get:
       summary: Read sanitized tenant theme bootstrap settings
+      description: Returns preset, safe theme colors, optional logo URL, version, cache key, and CSS variable names for no-flicker bootstrap.
       security:
         - morfoschools_session: []
       responses:
-        '200': { description: Current tenant theme }
+        '200':
+          description: Current tenant theme
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      theme:
+                        $ref: '#/components/schemas/TenantTheme'
+        '400': { description: Tenant context is required }
+        '401': { description: Missing or invalid session }
 components:
   securitySchemes:
     morfoschools_session:
@@ -61,6 +75,29 @@ components:
       in: header
       name: X-CSRF-Token
   schemas:
+    TenantTheme:
+      type: object
+      required: [tenantId, preset, primaryColor, accentColor, logoUrl, version, cacheKey, cssVariables]
+      properties:
+        tenantId: { type: string, format: uuid }
+        preset: { type: string }
+        primaryColor:
+          type: string
+          description: Safe hex or OKLCH color only; raw CSS fragments are rejected.
+        accentColor:
+          type: string
+          description: Safe hex or OKLCH color only; raw CSS fragments are rejected.
+        logoUrl:
+          type: string
+          description: Empty string or HTTPS URL.
+        version: { type: integer }
+        cacheKey:
+          type: string
+          description: Valkey key format tenant_theme:{tenantId}:v{version}.
+        cssVariables:
+          type: object
+          additionalProperties: { type: string }
+          description: Stable no-flicker bootstrap variables: --morfoschool-color-primary, --morfoschool-color-accent, optional --morfoschool-logo-url.
     ErrorEnvelope:
       type: object
       required: [code, message, requestId]

@@ -26,10 +26,11 @@ type DependencyCheck struct {
 }
 
 type Dependencies struct {
-	DB       *sql.DB
-	Database DependencyCheck
-	Valkey   DependencyCheck
-	NATS     DependencyCheck
+	DB         *sql.DB
+	Database   DependencyCheck
+	Valkey     DependencyCheck
+	NATS       DependencyCheck
+	ThemeCache themeCache
 }
 
 type App struct {
@@ -59,6 +60,7 @@ func (a *App) Handler() http.Handler {
 	mux.HandleFunc("/readyz", a.readyz)
 	a.registerAuthRoutes(mux)
 	a.registerPlatformRoutes(mux)
+	a.registerThemeRoutes(mux)
 	return a.wrap(mux)
 }
 

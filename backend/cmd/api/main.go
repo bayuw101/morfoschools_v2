@@ -57,10 +57,11 @@ func main() {
 	}
 
 	a := app.New(cfg, app.Dependencies{
-		DB:       db,
-		Database: app.DependencyCheck{Name: "database", Check: dbPingCheck(db)},
-		Valkey:   app.DependencyCheck{Name: "valkey", Check: tcpCheckFromURL(env("VALKEY_URL", "redis://valkey:6379/0"), "6379")},
-		NATS:     app.DependencyCheck{Name: "nats", Check: tcpCheckFromURL(env("NATS_URL", "nats://nats:4222"), "4222")},
+		DB:         db,
+		Database:   app.DependencyCheck{Name: "database", Check: dbPingCheck(db)},
+		Valkey:     app.DependencyCheck{Name: "valkey", Check: tcpCheckFromURL(env("VALKEY_URL", "redis://valkey:6379/0"), "6379")},
+		NATS:       app.DependencyCheck{Name: "nats", Check: tcpCheckFromURL(env("NATS_URL", "nats://nats:4222"), "4222")},
+		ThemeCache: app.NewValkeyThemeCache(env("VALKEY_URL", "redis://valkey:6379/0")),
 	})
 
 	srv := &http.Server{
