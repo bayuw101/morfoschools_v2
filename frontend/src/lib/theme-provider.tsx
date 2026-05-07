@@ -54,16 +54,24 @@ export function ThemeProvider({
   fetcher?: Fetcher;
   sessionKey?: string;
 }) {
-  const [preference, setPreference] = React.useState<LocalThemePreference>(() => readPreference());
+  const [preference, setPreference] = React.useState<LocalThemePreference>(() => normalizeLocalThemePreference(null));
+  const [preferenceHydrated, setPreferenceHydrated] = React.useState(false);
   const [tenantTheme, setTenantTheme] = React.useState<TenantTheme | null>(null);
   const [tenantThemeLoading, setTenantThemeLoading] = React.useState(false);
   const [tenantThemeError, setTenantThemeError] = React.useState<string | null>(null);
 
   React.useEffect(() => {
+    setPreference(readPreference());
+    setPreferenceHydrated(true);
+  }, []);
+
+  React.useEffect(() => {
+    if (!preferenceHydrated) return;
+
     const root = document.documentElement;
     applyThemePreference(root, preference);
     window.localStorage.setItem(THEME_STORAGE_KEY, JSON.stringify(preference));
-  }, [preference]);
+  }, [preference, preferenceHydrated]);
 
   const refreshTenantTheme = React.useCallback(async () => {
     setTenantThemeLoading(true);

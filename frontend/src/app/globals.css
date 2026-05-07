@@ -35,6 +35,8 @@
   --border-strong: oklch(46% 0.012 286 / 0.84);
   --ring: oklch(70.7% 0.165 254.624 / 0.42);
   --overlay: oklch(7% 0.004 286 / 0.58);
+  --login-image-overlay: oklch(8% 0.012 286 / 0.78);
+  --login-feature-card: oklch(24% 0.008 285.885 / 0.74);
 }
 
 :root[data-theme="light"] {
@@ -51,6 +53,8 @@
   --border-strong: oklch(87.1% 0.006 286.286 / 0.96);
   --ring: oklch(70.7% 0.165 254.624 / 0.42);
   --overlay: oklch(14.1% 0.005 285.823 / 0.42);
+  --login-image-overlay: oklch(100% 0 0 / 0.68);
+  --login-feature-card: oklch(100% 0 0 / 0.62);
   --success-soft: oklch(96.2% 0.044 156.743 / 0.95);
   --warning-soft: oklch(97.3% 0.071 103.193 / 0.95);
   --danger-soft: oklch(97.1% 0.013 17.38 / 0.96);

@@ -1,10 +1,49 @@
 import * as React from "react";
-import { render, waitFor } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { cleanup, render, waitFor } from "@testing-library/react";
+import { renderToString } from "react-dom/server";
+import { afterEach, describe, expect, it } from "vitest";
 
-import { ThemeProvider } from "./theme-provider";
+import { ThemeProvider, useTheme } from "./theme-provider";
+
+function ThemeProbe() {
+  const { preference } = useTheme();
+  return React.createElement("span", { "data-testid": "theme-mode" }, preference.mode);
+}
+
+afterEach(() => {
+  cleanup();
+  window.localStorage.clear();
+  document.documentElement.removeAttribute("data-theme");
+  document.documentElement.removeAttribute("data-palette");
+  document.documentElement.removeAttribute("style");
+});
 
 describe("ThemeProvider", () => {
+  it("keeps the first render deterministic before reading browser-only theme storage", async () => {
+    window.localStorage.setItem(
+      "morfoschools-theme-v1",
+      JSON.stringify({ mode: "light", palette: "tokyo-night" }),
+    );
+
+    const fetcher = async () =>
+      new Response(JSON.stringify({ data: { theme: { cssVariables: {} } } }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    const serverMarkup = renderToString(
+      React.createElement(ThemeProvider, { fetcher }, React.createElement(ThemeProbe)),
+    );
+    const clientView = render(
+      React.createElement(ThemeProvider, { fetcher }, React.createElement(ThemeProbe)),
+    );
+
+    expect(serverMarkup).toContain(">dark<");
+
+    await waitFor(() => {
+      expect(clientView.getByTestId("theme-mode").textContent).toBe("light");
+    });
+  });
+
   it("applies local preference and sanitized tenant theme variables, then refreshes on session changes", async () => {
     window.localStorage.setItem(
       "morfoschools-theme-v1",
@@ -44,8 +83,10 @@ describe("ThemeProvider", () => {
       ),
     );
 
-    expect(document.documentElement.dataset.theme).toBe("light");
-    expect(document.documentElement.dataset.palette).toBe("tokyo-night");
+    await waitFor(() => {
+      expect(document.documentElement.dataset.theme).toBe("light");
+      expect(document.documentElement.dataset.palette).toBe("tokyo-night");
+    });
 
     await waitFor(() => {
       expect(document.documentElement.style.getPropertyValue("--morfoschool-color-primary")).toBe("#123456");

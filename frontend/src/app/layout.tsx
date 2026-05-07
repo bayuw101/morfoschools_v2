@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Manrope, Space_Grotesk } from "next/font/google";
+import { QueryProvider } from "@/components/providers/query-provider";
 import { ThemeProvider } from "@/lib/theme-provider";
 import "./globals.css";
 
@@ -69,7 +70,9 @@ export default function RootLayout({
       <body
         className={`${manrope.variable} ${spaceGrotesk.variable} antialiased`}
       >
-        <ThemeProvider>{children}</ThemeProvider>
+        <QueryProvider>
+          <ThemeProvider>{children}</ThemeProvider>
+        </QueryProvider>
       </body>
     </html>
   );

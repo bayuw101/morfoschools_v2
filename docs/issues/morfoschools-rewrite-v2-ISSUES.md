@@ -776,11 +776,19 @@ docs/frontend/INTERACTION_CONTRACT.md
 
 **Acceptance Criteria:**
 
-- [ ] API client returns typed data/errors.
-- [ ] TanStack Query provider is integrated.
-- [ ] Mutations expose loading state to UI.
-- [ ] API errors map to form/global UI states.
-- [ ] No page stores unsafe dummy initial API rows.
+- [x] API client returns typed data/errors.
+- [x] TanStack Query provider is integrated.
+- [x] Mutations expose loading state to UI.
+- [x] API errors map to form/global UI states.
+- [x] No page stores unsafe dummy initial API rows.
+
+**Completion Note (2026-05-07):**
+
+- Added typed frontend API client at `frontend/src/lib/api-client.ts` with envelope unwrapping, httpOnly-cookie credentials, tenant/effective-tenant header propagation, CSRF header injection for unsafe methods, and normalized `ApiError` objects.
+- Added API-to-form mapping and mutation UI-state helpers so module forms can map backend validation/global errors and expose loading props consistently.
+- Installed and integrated TanStack Query through `QueryProvider` in the root app layout with stable query/mutation defaults and no dummy initial API rows.
+- Added TDD coverage for API envelope typing, error normalization, form/global error mapping, mutation loading conventions, empty API results, and QueryProvider defaults.
+- Validation: frontend `npm test` and `NEXT_DIST_DIR=.next-hermes-build npm run build` pass. Normal `.next` remains root-owned in this environment, so alternate build dir was used for production-build verification.
 
 ---
 
@@ -1021,10 +1029,22 @@ enrollments
 
 **Acceptance Criteria:**
 
-- [ ] Administrative class sections are separate from academic offerings.
-- [ ] Subject groups support flexible rombel/cross-class learning.
-- [ ] Teaching assignments are explicit.
-- [ ] Enrollments can support class and individual targeting.
+- [x] Administrative class sections are separate from academic offerings.
+- [x] Subject groups support flexible rombel/cross-class learning.
+- [x] Teaching assignments are explicit.
+- [x] Enrollments can support class and individual targeting.
+
+**Completion Note (2026-05-07):**
+
+- Added RED/GREEN migration contract coverage for the academic baseline in `backend/internal/platform/migrate/academic_schema_test.go`.
+- Added `backend/migrations/000005_academic_foundation.sql` with `academic_years`, `terms`, `class_sections`, `subjects`, `subject_groups`, `subject_group_members`, `course_offerings`, `teaching_assignments`, and `enrollments`.
+- Kept administrative `class_sections` separate from academic `course_offerings`; offerings link term + class section + subject and may optionally reference a flexible subject group.
+- Added subject groups and subject group members for rombel, cross-class, remedial, enrichment, club, and custom groupings.
+- Added explicit teaching assignments per course offering and teacher.
+- Added enrollments per course offering and student with `target_type` for class-section, subject-group, or individual targeting.
+- Added tenant-scoped composite keys/foreign keys, uniqueness constraints, and lookup indexes for directories, teacher courses, and student enrollments.
+- Updated local development reset order so academic child tables drop before profile/auth foundation tables.
+- Validation: backend focused migration tests, `go test ./...`, `go build ./...`, Docker backend rebuild/recreate, `/readyz`, and live PostgreSQL `schema_migrations`/table inspection pass.
 
 **Implementation Notes (2026-05-06):**
 
@@ -1057,10 +1077,20 @@ lesson_progress
 
 **Acceptance Criteria:**
 
-- [ ] Courses are reusable content packages.
-- [ ] Offerings bind courses to academic/tenant context.
-- [ ] Assignment rules support class and individual targets.
-- [ ] Progress can be tracked per student.
+- [x] Courses are reusable content packages.
+- [x] Offerings bind courses to academic/tenant context.
+- [x] Assignment rules support class and individual targets.
+- [x] Progress can be tracked per student.
+
+**Completion Note (2026-05-07):**
+
+- Added RED/GREEN migration contract coverage for course schema in `backend/internal/platform/migrate/courses_schema_test.go`.
+- Added `backend/migrations/000006_courses.sql` with reusable `courses`, ordered `course_modules`, `course_lessons`, metadata-only `course_resources`, `course_assignment_rules`, `course_progress`, and `lesson_progress`.
+- Course resources store provider/reference metadata for YouTube, Google Drive, external URLs, or file references; no heavy file hosting path was introduced.
+- Course assignment rules bind reusable courses to optional academic `course_offerings` and support class-section, subject-group, and individual-student targets.
+- Progress tables track course and lesson completion per tenant/student with safe 0-100 progress percentages and status indexes.
+- Updated local development reset order so course child/progress tables drop before academic/profile/auth foundation tables.
+- Validation: backend focused migration tests, `go test ./...`, `go build ./...`, Docker backend rebuild/recreate, `/readyz`, and live PostgreSQL `schema_migrations`/table inspection pass.
 
 **Implementation Notes (2026-05-06):**
 

@@ -141,6 +141,22 @@ func ResetLocalDev(ctx context.Context, db *sql.DB) error {
 
 func resetLocalDevTables() []string {
 	return []string{
+		"lesson_progress",
+		"course_progress",
+		"course_assignment_rules",
+		"course_resources",
+		"course_lessons",
+		"course_modules",
+		"courses",
+		"enrollments",
+		"teaching_assignments",
+		"course_offerings",
+		"subject_group_members",
+		"subject_groups",
+		"subjects",
+		"class_sections",
+		"terms",
+		"academic_years",
 		"student_guardians",
 		"guardians",
 		"staff_profiles",

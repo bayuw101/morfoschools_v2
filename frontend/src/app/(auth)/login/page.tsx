@@ -63,10 +63,10 @@ export default function LoginPage() {
   return (
     <main className="relative min-h-screen overflow-hidden px-4 py-6 text-[color:var(--foreground)] sm:px-6 lg:px-8">
       <div className="absolute inset-0 -z-20 bg-[url('/bg.webp')] bg-cover bg-center bg-no-repeat blur-[2px] scale-[1.01]" />
-      <div className="absolute inset-0 -z-10 bg-white/72 backdrop-blur-[1.5px]" />
-      <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.55),transparent_34%),linear-gradient(135deg,rgba(255,255,255,0.78)_0%,rgba(255,255,255,0.58)_52%,rgba(255,255,255,0.7)_100%)]" />
+      <div className="absolute inset-0 -z-10 bg-[color:var(--login-image-overlay)] backdrop-blur-[1.5px] transition-colors duration-300" />
+      <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_20%_10%,var(--body-glow-a),transparent_34%),radial-gradient(circle_at_80%_80%,var(--body-glow-b),transparent_32%)]" />
       <div className="relative mx-auto grid min-h-[calc(100vh-3rem)] max-w-7xl items-center gap-8 lg:grid-cols-[1.05fr_0.95fr]">
-        <section className="relative overflow-hidden rounded-[40px] border border-white/70 bg-white/68 p-6 shadow-[0_24px_80px_rgba(9,17,28,0.12)] backdrop-blur-md sm:p-8 lg:p-10">
+        <section className="relative overflow-hidden  sm:p-8 lg:p-10">
           <div className="absolute -right-12 -top-12 h-40 w-40 rounded-full bg-[color:var(--brand-soft)] blur-3xl" />
           <div className="relative">
             <div className="max-w-2xl">
@@ -99,7 +99,7 @@ export default function LoginPage() {
               ].map((item) => (
                 <div
                   key={item.title}
-                  className="rounded-[28px] border border-white/70 bg-white/62 p-4 shadow-sm"
+                  className="rounded-[28px] border border-[color:var(--border)] bg-[color:var(--login-feature-card)] p-4 shadow-sm backdrop-blur-md transition-colors duration-300"
                 >
                   <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[color:var(--brand-soft)] text-[color:var(--brand-strong)]">
                     <item.icon className="h-5 w-5" />
@@ -116,7 +116,7 @@ export default function LoginPage() {
           </div>
         </section>
 
-        <section className="rounded-[40px] border border-[color:var(--border-strong)] bg-[color:var(--surface)] p-5 shadow-[0_30px_80px_rgba(9,17,28,0.18)] sm:p-7">
+        <section className="rounded-[40px] bg-[color-mix(in_oklch,var(--surface)_50%,transparent)] p-5 shadow-[0_30px_80px_rgba(9,17,28,0.18)] backdrop-blur-xl sm:p-7">
           <div className="rounded-[30px] border border-[color:var(--border)] bg-[color:var(--surface-subtle)] p-5 sm:p-6">
             <div className="flex items-start justify-between gap-4">
               <div>
