@@ -45,5 +45,14 @@ if (existsSync(path.join(tempFrontend, ".next-alt"))) {
   process.exit(1);
 }
 
+const dockerignore = readFileSync(path.join(repoRoot, ".dockerignore"), "utf8");
+for (const required of [".next", ".next-*", ".next-hermes-build"]) {
+  if (!dockerignore.split(/\r?\n/).includes(required)) {
+    console.error(`.dockerignore must exclude ${required} so stale Next/Tailwind build artifacts cannot enter Docker build context`);
+    rmSync(tempRoot, { recursive: true, force: true });
+    process.exit(1);
+  }
+}
+
 rmSync(tempRoot, { recursive: true, force: true });
-console.log("[next-safe.test] dev/build commands remove stale configured Next dist dirs before startup.");
+console.log("[next-safe.test] dev/build commands remove stale configured Next dist dirs and Docker excludes stale Next caches.");
