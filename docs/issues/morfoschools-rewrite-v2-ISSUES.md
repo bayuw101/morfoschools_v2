@@ -1169,10 +1169,19 @@ ai_draft_questions
 
 **Acceptance Criteria:**
 
-- [ ] AI provider config supports BYO and platform default.
-- [ ] Conversation memory runtime schema is planned.
-- [ ] No secrets are stored unencrypted.
-- [ ] AI draft question storage can support long generation flows.
+- [x] AI provider config supports BYO and platform default.
+- [x] Conversation memory runtime schema is planned.
+- [x] No secrets are stored unencrypted.
+- [x] AI draft question storage can support long generation flows.
+
+**Completion Note (2026-05-07):**
+
+- Added RED/GREEN docs contract coverage in `backend/internal/platform/docscontract/ai_runtime_schema_plan_test.go`.
+- Added planning artifact `docs/architecture/AI_RUNTIME_SCHEMA_PLAN.md` covering provider configs, conversations, messages, conversation state, memories, tool invocations, generation jobs, and draft questions.
+- Documented deterministic BYO provider resolution order: user config, tenant config, then platform default provider.
+- Captured secret-handling constraints: plaintext API keys are forbidden; provider configs store only `encrypted_secret_ref` backed by envelope encryption.
+- Planned long-running generation jobs plus reviewable `ai_draft_questions` with `correct_answer_text` and `expected_answer_rubric` so essay/short-answer generation matches exam schema readiness.
+- Explicitly documented exam critical path isolation from AI providers, Google, ClickHouse, and external webhooks.
 
 **Implementation Notes (2026-05-06):**
 
