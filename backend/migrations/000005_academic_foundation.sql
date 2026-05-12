@@ -20,8 +20,8 @@ CREATE TABLE IF NOT EXISTS terms (
     academic_year_id UUID NOT NULL,
     code TEXT NOT NULL,
     name TEXT NOT NULL,
-    starts_on DATE NOT NULL,
-    ends_on DATE NOT NULL,
+    starts_on DATE,
+    ends_on DATE,
     status TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'active', 'closed', 'archived')),
     metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -29,7 +29,7 @@ CREATE TABLE IF NOT EXISTS terms (
     UNIQUE (tenant_id, id),
     UNIQUE (tenant_id, academic_year_id, code),
     FOREIGN KEY (tenant_id, academic_year_id) REFERENCES academic_years(tenant_id, id) ON DELETE CASCADE,
-    CHECK (starts_on <= ends_on)
+    CHECK (starts_on IS NULL OR ends_on IS NULL OR starts_on <= ends_on)
 );
 
 CREATE TABLE IF NOT EXISTS class_sections (

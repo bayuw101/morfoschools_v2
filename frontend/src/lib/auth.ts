@@ -2,7 +2,8 @@ export const AUTH_TOKEN_COOKIE = "morfoschools_session_present";
 export const CSRF_COOKIE = "morfoschools_csrf";
 
 const SESSION_KEY = "morfoschools_session_cache";
-const DEFAULT_API_BASE_URL = "http://localhost:8080";
+const DEFAULT_API_BASE_URL = "http://127.0.0.1:18080";
+export const AUTH_SESSION_CHANGED_EVENT = "morfoschools:auth-session-changed";
 
 export type UserRole =
   | "master_admin"
@@ -97,20 +98,26 @@ function normalizeSession(payload: any): AuthSession {
     role: primaryRole,
     roles,
     permissions: user.permissions ?? [],
-    tenantId: tenant.id ?? user.tenantId ?? "",
-    tenantName: tenant.name ?? user.tenantName ?? "Morfosis Tenant",
+    tenantId: user.effectiveTenantId ?? tenant.id ?? user.tenantId ?? "",
+    tenantName: user.effectiveTenantName ?? tenant.name ?? user.tenantName ?? "",
     effectiveTenantId: user.effectiveTenantId ?? tenant.id ?? user.tenantId ?? "",
-    isActingAsTenant: Boolean(user.isActingAsTenant),
+    isActingAsTenant: Boolean(user.isActingAsTenant ?? user.effectiveTenantId),
     csrfToken: root.csrfToken ?? csrfTokenFromCookie(),
     expiresAt: user.expiresAt ?? root.expiresAt ?? new Date(Date.now() + 1000 * 60 * 60 * 8).toISOString(),
     source: "backend-cookie",
   };
 }
 
+function emitSessionChanged(session: AuthSession | null) {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new CustomEvent(AUTH_SESSION_CHANGED_EVENT, { detail: session }));
+}
+
 export function storeSession(session: AuthSession, storage?: SessionStorage | null): void {
   const s = storage ?? defaultStorage();
   s?.setItem(SESSION_KEY, JSON.stringify(session));
   setTokenCookie(session.expiresAt);
+  emitSessionChanged(session);
 }
 
 export function getSession(storage?: SessionStorage | null): AuthSession | null {
@@ -128,6 +135,7 @@ export function clearSession(storage?: SessionStorage | null): void {
   const s = storage ?? defaultStorage();
   s?.removeItem(SESSION_KEY);
   clearTokenCookie();
+  emitSessionChanged(null);
 }
 
 export function isAuthenticated(storage?: SessionStorage | null): boolean {

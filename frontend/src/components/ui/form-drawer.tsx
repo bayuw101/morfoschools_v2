@@ -36,13 +36,13 @@ export function FormDrawer({
     document.querySelector("[data-app-shell-modal-root]") ?? document.body;
 
   return createPortal(
-    <div className="shadow rounded-[30px] border-l-[1px] border-gray-100 pointer-events-none absolute inset-y-0 right-0 z-[80] flex w-full justify-end overflow-hidden sm:w-[min(560px,calc(100%-1rem))]">
+    <div className="pointer-events-none absolute inset-0 z-[80] flex justify-end overflow-hidden">
       <div
         role="dialog"
         aria-modal="false"
         aria-labelledby="form-drawer-title"
         className={cn(
-          "shadow-sm pointer-events-auto relative z-[1] flex h-full w-full max-w-[560px] flex-col border-[color:var(--border-strong)] bg-[color:var(--surface)] md:rounded-l-[30px]",
+          "pointer-events-auto relative z-[1] flex h-full w-full max-w-[560px] flex-col border-l border-[color:var(--border-strong)] bg-[color:var(--surface)] shadow-[-22px_0_70px_rgba(5,13,25,0.14)] md:rounded-l-[30px]",
           className,
         )}
       >

@@ -43,6 +43,331 @@ paths:
       responses:
         '200': { description: Current session context }
         '401': { description: Missing or invalid session }
+
+  /api/v1/platform/tenants:
+    get:
+      summary: List platform tenants
+      description: Requires tenants:read or platform:admin. Used by master admin before selecting an effective tenant.
+      security:
+        - morfoschools_session: []
+      responses:
+        '200': { description: Tenant directory }
+        '401': { description: Missing or invalid session }
+        '403': { description: Missing tenants:read permission }
+    post:
+      summary: Create tenant/school
+      description: Requires tenants:write or platform:admin. Creates tenant, default theme settings, default tenant roles/permissions, and one tenants.create audit event.
+      security:
+        - morfoschools_session: []
+        - morfoschools_csrf: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTenantRequest'
+      responses:
+        '201': { description: Tenant created }
+        '400': { description: validation_failed }
+        '401': { description: Missing or invalid session }
+        '403': { description: Missing tenants:write permission }
+  /api/v1/platform/tenants/{id}/bootstrap-admin:
+    post:
+      summary: Bootstrap first tenant school admin
+      description: Requires tenants:bootstrap or platform:admin. Creates or links a user identity, password credential, active tenant membership, school_admin role assignment, and one tenants.bootstrap_admin audit event.
+      security:
+        - morfoschools_session: []
+        - morfoschools_csrf: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BootstrapTenantAdminRequest'
+      responses:
+        '201': { description: Tenant admin bootstrapped }
+        '400': { description: validation_failed or tenant_or_role_not_found }
+        '401': { description: Missing or invalid session }
+        '403': { description: Missing tenants:bootstrap permission }
+
+  /api/v1/users:
+    get:
+      summary: List tenant users
+      description: Requires users:read. Returns only users in the authenticated subject effective tenant; client-provided tenant IDs are ignored. Missing tenant context returns tenant_context_required.
+      security:
+        - morfoschools_session: []
+      responses:
+        '200':
+          description: Tenant user directory
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      users:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/UserDirectoryRow'
+        '400': { description: tenant_context_required }
+        '401': { description: Missing or invalid session }
+        '403': { description: Missing users:read permission }
+    post:
+      summary: Create tenant user membership
+      description: Requires users:write. Creates a user identity, active tenant membership, tenant-scoped roles, and one users.create audit event.
+      security:
+        - morfoschools_session: []
+        - morfoschools_csrf: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateUserRequest'
+      responses:
+        '201':
+          description: User created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      user:
+                        $ref: '#/components/schemas/UserDirectoryRow'
+        '400': { description: validation_failed, tenant_context_required, or role_not_found }
+        '401': { description: Missing or invalid session }
+        '403': { description: Missing users:write permission }
+  /api/v1/users/{id}:
+    patch:
+      summary: Update tenant user profile and roles
+      description: Requires users:write. Updates displayName and replaces role assignments inside the effective tenant only; emits one users.update audit event.
+      security:
+        - morfoschools_session: []
+        - morfoschools_csrf: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserRequest'
+      responses:
+        '200': { description: User updated }
+        '400': { description: validation_failed, tenant_context_required, or role_not_found }
+        '401': { description: Missing or invalid session }
+        '403': { description: Missing users:write permission }
+        '404': { description: user_not_found }
+  /api/v1/users/{id}/deactivate:
+    patch:
+      summary: Deactivate tenant user membership
+      description: Requires users:write. Archives only the membership in the effective tenant; other tenant memberships remain unchanged. Emits one users.deactivate audit event.
+      security:
+        - morfoschools_session: []
+        - morfoschools_csrf: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200': { description: Membership archived }
+        '400': { description: tenant_context_required }
+        '401': { description: Missing or invalid session }
+        '403': { description: Missing users:write permission }
+        '404': { description: user_not_found }
+  /api/v1/academic-years:
+    get:
+      summary: List tenant academic years with nested terms
+      description: Requires academic:read. Returns only academic years in the authenticated subject effective tenant; missing tenant context returns tenant_context_required.
+      security:
+        - morfoschools_session: []
+      responses:
+        '200': { description: Academic years directory }
+        '400': { description: tenant_context_required }
+        '401': { description: Missing or invalid session }
+        '403': { description: Missing academic:read permission }
+    post:
+      summary: Create tenant academic year
+      description: Requires academic:write. Creates one academic year, closes the previous active year when the new year is active, and emits one academic_years.create audit event.
+      security:
+        - morfoschools_session: []
+        - morfoschools_csrf: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAcademicYearRequest'
+      responses:
+        '201': { description: Academic year created }
+        '400': { description: validation_failed or tenant_context_required }
+        '401': { description: Missing or invalid session }
+        '403': { description: Missing academic:write permission }
+  /api/v1/terms:
+    post:
+      summary: Create tenant term
+      description: Requires academic:write. Creates a term inside an effective-tenant academic year, validates term dates against the parent year, closes the previous active term when the new term is active, and emits one terms.create audit event.
+      security:
+        - morfoschools_session: []
+        - morfoschools_csrf: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTermRequest'
+      responses:
+        '201': { description: Term created }
+        '400': { description: validation_failed, tenant_context_required, or term_outside_academic_year }
+        '401': { description: Missing or invalid session }
+        '403': { description: Missing academic:write permission }
+        '404': { description: academic_year_not_found }
+  /api/v1/terms/{id}:
+    patch:
+      summary: Update tenant term
+      description: Requires academic:write. Edits a non-archived term in the effective tenant, validates dates against the parent academic year, closes sibling active terms when updated to active, and emits one terms.update audit event.
+      security:
+        - morfoschools_session: []
+        - morfoschools_csrf: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTermRequest'
+      responses:
+        '200': { description: Term updated }
+        '400': { description: validation_failed, tenant_context_required, or term_outside_academic_year }
+        '401': { description: Missing or invalid session }
+        '403': { description: Missing academic:write permission }
+        '404': { description: term_not_found }
+  /api/v1/academic-years/{id}/duplicate:
+    post:
+      summary: Duplicate tenant academic year to the next school year
+      description: Requires academic:write. Creates the next academic year by shifting the source year date range by one year, copies non-archived child terms with dates shifted by one year, and emits one academic_years.duplicate audit event.
+      security:
+        - morfoschools_session: []
+        - morfoschools_csrf: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '201': { description: Duplicated academic year with adjusted terms }
+        '400': { description: tenant_context_required }
+        '401': { description: Missing or invalid session }
+        '403': { description: Missing academic:write permission }
+        '404': { description: academic_year_not_found }
+  /api/v1/academic-years/{id}/archive:
+    patch:
+      summary: Archive tenant academic year and terms
+      description: Requires academic:write. Archives the academic year in the effective tenant, cascades archive to child terms, and emits one academic_years.archive audit event.
+      security:
+        - morfoschools_session: []
+        - morfoschools_csrf: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200': { description: Academic year and terms archived }
+        '400': { description: tenant_context_required }
+        '401': { description: Missing or invalid session }
+        '403': { description: Missing academic:write permission }
+        '404': { description: academic_year_not_found }
+  /api/v1/class-sections:
+    get:
+      summary: List tenant class sections
+      description: Requires academic:read. Returns only non-archived class sections in the authenticated subject effective tenant with academic year and optional homeroom teacher summaries.
+      security:
+        - morfoschools_session: []
+      responses:
+        '200': { description: Class sections directory }
+        '400': { description: tenant_context_required }
+        '401': { description: Missing or invalid session }
+        '403': { description: Missing academic:read permission }
+    post:
+      summary: Create tenant class section
+      description: Requires academic:write. Validates academic year and optional homeroom teacher inside the effective tenant and emits one class_sections.create audit event.
+      security:
+        - morfoschools_session: []
+        - morfoschools_csrf: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpsertClassSectionRequest'
+      responses:
+        '201': { description: Class section created }
+        '400': { description: validation_failed or tenant_context_required }
+        '401': { description: Missing or invalid session }
+        '403': { description: Missing academic:write permission }
+        '404': { description: academic_year_not_found or homeroom_teacher_not_found }
+  /api/v1/class-sections/{id}:
+    patch:
+      summary: Update tenant class section
+      description: Requires academic:write. Updates a non-archived class section in the effective tenant, validates relationships, and emits one class_sections.update audit event.
+      security:
+        - morfoschools_session: []
+        - morfoschools_csrf: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpsertClassSectionRequest'
+      responses:
+        '200': { description: Class section updated }
+        '400': { description: validation_failed or tenant_context_required }
+        '401': { description: Missing or invalid session }
+        '403': { description: Missing academic:write permission }
+        '404': { description: class_section_not_found, academic_year_not_found, or homeroom_teacher_not_found }
+        '409': { description: class_section_archived }
+  /api/v1/class-sections/{id}/archive:
+    patch:
+      summary: Archive tenant class section
+      description: Requires academic:write. Soft-archives the effective-tenant class section and emits one class_sections.archive audit event.
+      security:
+        - morfoschools_session: []
+        - morfoschools_csrf: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200': { description: Class section archived }
+        '400': { description: tenant_context_required }
+        '401': { description: Missing or invalid session }
+        '403': { description: Missing academic:write permission }
+        '404': { description: class_section_not_found }
   /api/v1/tenants/current/theme:
     get:
       summary: Read sanitized tenant theme bootstrap settings
@@ -75,6 +400,158 @@ components:
       in: header
       name: X-CSRF-Token
   schemas:
+
+    PlatformTenantRow:
+      type: object
+      required: [id, code, name, status]
+      properties:
+        id: { type: string, format: uuid }
+        code: { type: string }
+        name: { type: string }
+        status: { type: string, enum: [active, suspended, archived] }
+    CreateTenantRequest:
+      type: object
+      required: [code, name]
+      properties:
+        code: { type: string, minLength: 1 }
+        name: { type: string, minLength: 1 }
+    BootstrapTenantAdminRequest:
+      type: object
+      required: [email, displayName, password]
+      properties:
+        email: { type: string, format: email }
+        displayName: { type: string, minLength: 1 }
+        password: { type: string, minLength: 10 }
+    UserDirectoryRow:
+      type: object
+      required: [id, email, displayName, status, membershipId, tenantId, tenantStatus, roles, roleNames, createdAt, updatedAt]
+      properties:
+        id: { type: string, format: uuid }
+        email: { type: string, format: email }
+        displayName: { type: string }
+        status: { type: string, enum: [active, invited, suspended, archived] }
+        membershipId: { type: string, format: uuid }
+        tenantId: { type: string, format: uuid }
+        tenantStatus: { type: string, enum: [active, archived] }
+        roles:
+          type: array
+          items: { type: string }
+        roleNames:
+          type: array
+          items: { type: string }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    CreateUserRequest:
+      type: object
+      required: [email, displayName, roleCodes]
+      properties:
+        email: { type: string, format: email }
+        displayName: { type: string, minLength: 1 }
+        roleCodes:
+          type: array
+          minItems: 1
+          items: { type: string }
+    UpdateUserRequest:
+      type: object
+      required: [displayName, roleCodes]
+      properties:
+        displayName: { type: string, minLength: 1 }
+        roleCodes:
+          type: array
+          minItems: 1
+          items: { type: string }
+    AcademicYearRow:
+      type: object
+      required: [id, tenantId, code, name, startsOn, endsOn, status, terms]
+      properties:
+        id: { type: string, format: uuid }
+        tenantId: { type: string, format: uuid }
+        code: { type: string }
+        name: { type: string }
+        startsOn: { type: string, format: date }
+        endsOn: { type: string, format: date }
+        status: { type: string, enum: [draft, active, closed, archived] }
+        terms:
+          type: array
+          items:
+            $ref: '#/components/schemas/TermRow'
+    TermRow:
+      type: object
+      required: [id, tenantId, academicYearId, code, name, startsOn, endsOn, status]
+      properties:
+        id: { type: string, format: uuid }
+        tenantId: { type: string, format: uuid }
+        academicYearId: { type: string, format: uuid }
+        code: { type: string }
+        name: { type: string }
+        startsOn: { type: string, format: date }
+        endsOn: { type: string, format: date }
+        status: { type: string, enum: [draft, active, closed, archived] }
+    CreateAcademicYearRequest:
+      type: object
+      required: [code, name, startsOn, endsOn]
+      properties:
+        code: { type: string, minLength: 1 }
+        name: { type: string, minLength: 1 }
+        startsOn: { type: string, format: date }
+        endsOn: { type: string, format: date }
+        status: { type: string, enum: [draft, active, closed, archived] }
+    CreateTermRequest:
+      type: object
+      required: [academicYearId, code, name, startsOn, endsOn]
+      properties:
+        academicYearId: { type: string, format: uuid }
+        code: { type: string, minLength: 1 }
+        name: { type: string, minLength: 1 }
+        startsOn: { type: string, format: date }
+        endsOn: { type: string, format: date }
+        status: { type: string, enum: [draft, active, closed, archived] }
+    UpdateTermRequest:
+      type: object
+      required: [code, name, status]
+      properties:
+        code: { type: string, minLength: 1 }
+        name: { type: string, minLength: 1 }
+        startsOn: { type: string, format: date }
+        endsOn: { type: string, format: date }
+        status: { type: string, enum: [draft, active, closed, archived] }
+    ClassSectionRow:
+      type: object
+      required: [id, tenantId, academicYearId, code, name, gradeLevel, status, academicYear]
+      properties:
+        id: { type: string, format: uuid }
+        tenantId: { type: string, format: uuid }
+        academicYearId: { type: string, format: uuid }
+        code: { type: string }
+        name: { type: string }
+        gradeLevel: { type: string }
+        homeroomTeacherId: { type: string, format: uuid }
+        status: { type: string, enum: [active, inactive, archived] }
+        academicYear:
+          type: object
+          properties:
+            id: { type: string, format: uuid }
+            code: { type: string }
+            name: { type: string }
+            startsOn: { type: string, format: date }
+            endsOn: { type: string, format: date }
+            status: { type: string }
+        homeroomTeacher:
+          type: object
+          nullable: true
+          properties:
+            id: { type: string, format: uuid }
+            name: { type: string }
+    UpsertClassSectionRequest:
+      type: object
+      required: [academicYearId, code, name, gradeLevel]
+      properties:
+        academicYearId: { type: string, format: uuid }
+        code: { type: string, minLength: 1 }
+        name: { type: string, minLength: 1 }
+        gradeLevel: { type: string, minLength: 1 }
+        homeroomTeacherId: { type: string, format: uuid }
+        status: { type: string, enum: [active, inactive, archived] }
     TenantTheme:
       type: object
       required: [tenantId, preset, primaryColor, accentColor, logoUrl, version, cacheKey, cssVariables]

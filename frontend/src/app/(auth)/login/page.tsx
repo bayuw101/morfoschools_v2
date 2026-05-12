@@ -62,7 +62,10 @@ export default function LoginPage() {
 
   return (
     <main className="relative min-h-screen overflow-hidden px-4 py-6 text-[color:var(--foreground)] sm:px-6 lg:px-8">
-      <div className="absolute inset-0 -z-20 bg-[url('/bg.webp')] bg-cover bg-center bg-no-repeat blur-[2px] scale-[1.01]" />
+      <div
+        className="absolute inset-0 -z-20 scale-[1.01] bg-cover bg-center bg-no-repeat blur-[2px]"
+        style={{ backgroundImage: "url('/bg.webp')" }}
+      />
       <div className="absolute inset-0 -z-10 bg-[color:var(--login-image-overlay)] backdrop-blur-[1.5px] transition-colors duration-300" />
       <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_20%_10%,var(--body-glow-a),transparent_34%),radial-gradient(circle_at_80%_80%,var(--body-glow-b),transparent_32%)]" />
       <div className="relative mx-auto grid min-h-[calc(100vh-3rem)] max-w-7xl items-center gap-8 lg:grid-cols-[1.05fr_0.95fr]">

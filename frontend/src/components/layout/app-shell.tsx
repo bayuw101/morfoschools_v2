@@ -26,16 +26,16 @@ export function AppShell({ children }: AppShellProps) {
   return (
     <div className="h-screen overflow-hidden bg-[color:var(--shell)]">
       <Sidebar />
-      <div className="relative h-screen md:pl-[66px]">
+      <div className="relative h-screen pb-[66px] md:pb-0 md:pl-[66px]">
         <div
           className={cn(
-            "grid h-full min-h-0 gap-3 p-0 transition-[grid-template-columns] duration-300 ease-out md:p-3 md:pl-2",
+            "grid h-full min-h-0 gap-3 transition-[grid-template-columns] duration-300 p-2 ease-out md:p-3 md:pl-2",
             aiChatOpen
               ? "md:grid-cols-[minmax(0,1fr)_390px] xl:grid-cols-[minmax(0,1fr)_430px]"
               : "md:grid-cols-[minmax(0,1fr)_0px]",
           )}
         >
-          <div className="relative h-full min-h-0 min-w-0 overflow-hidden rounded-[30px]">
+          <div className="relative h-full min-h-0 min-w-0 overflow-hidden md:rounded-[30px] rounded-[20px]">
             <div
               data-app-shell-modal-root
               className="pointer-events-none absolute inset-0 z-[70]"

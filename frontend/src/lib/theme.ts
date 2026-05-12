@@ -32,7 +32,7 @@ export type TenantTheme = {
 
 export const THEME_STORAGE_KEY = "morfoschools-theme-v1";
 export const DEFAULT_THEME_PREFERENCE: LocalThemePreference = {
-  mode: "dark",
+  mode: "light",
   palette: "morfosis",
 };
 
@@ -67,9 +67,10 @@ export function isPaletteName(value: unknown): value is PaletteName {
 }
 
 export function normalizeLocalThemePreference(input: unknown): LocalThemePreference {
-  const value = input && typeof input === "object" ? (input as Record<string, unknown>) : {};
+  const hasObjectInput = Boolean(input && typeof input === "object");
+  const value = hasObjectInput ? (input as Record<string, unknown>) : {};
   return {
-    mode: value.mode === "light" ? "light" : "dark",
+    mode: value.mode === "light" || value.mode === "dark" ? value.mode : hasObjectInput ? "dark" : DEFAULT_THEME_PREFERENCE.mode,
     palette: isPaletteName(value.palette) ? value.palette : DEFAULT_THEME_PREFERENCE.palette,
   };
 }

@@ -47,7 +47,7 @@ const defaultIcons: Record<NonNullable<ButtonProps["variant"]>, LucideIcon> = {
 const iconBoxVariants = {
   primary: "bg-white/16 text-white ring-white/20",
   secondary:
-    "bg-[color:var(--brand-soft)] text-[color:var(--brand-strong)] ring-[color:var(--border)]",
+    "bg-[color:var(--surface-subtle)] text-[color:var(--foreground)] ring-[color:var(--border)]",
   danger: "bg-white/16 text-white ring-white/20",
   ghost:
     "bg-[color:var(--surface)] text-[color:var(--muted-foreground)] ring-[color:var(--border)]",

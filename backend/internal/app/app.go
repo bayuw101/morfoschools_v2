@@ -14,10 +14,13 @@ import (
 )
 
 type Config struct {
-	ServiceName   string
-	Port          string
-	LogLevel      string
-	SecureCookies bool
+	ServiceName        string
+	Port               string
+	LogLevel           string
+	SecureCookies      bool
+	R2PublicBaseURL    string
+	TenantLogoPrefix   string
+	LocalTenantLogoDir string
 }
 
 type DependencyCheck struct {
@@ -26,11 +29,12 @@ type DependencyCheck struct {
 }
 
 type Dependencies struct {
-	DB         *sql.DB
-	Database   DependencyCheck
-	Valkey     DependencyCheck
-	NATS       DependencyCheck
-	ThemeCache themeCache
+	DB          *sql.DB
+	Database    DependencyCheck
+	Valkey      DependencyCheck
+	NATS        DependencyCheck
+	ThemeCache  themeCache
+	LogoStorage tenantLogoStorage
 }
 
 type App struct {
@@ -58,10 +62,15 @@ func (a *App) Handler() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/healthz", a.healthz)
 	mux.HandleFunc("/readyz", a.readyz)
+	if a.cfg.LocalTenantLogoDir != "" {
+		mux.Handle("/assets/tenant-logos/", http.StripPrefix("/assets/tenant-logos/", http.FileServer(http.Dir(a.cfg.LocalTenantLogoDir))))
+	}
 	a.registerAuthRoutes(mux)
 	a.registerPlatformRoutes(mux)
 	a.registerThemeRoutes(mux)
 	a.registerUserRoutes(mux)
+	a.registerAcademicRoutes(mux)
+	a.registerClassSectionRoutes(mux)
 	return a.wrap(mux)
 }
 

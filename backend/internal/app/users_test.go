@@ -1,6 +1,7 @@
 package app
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"net/http"
@@ -109,6 +110,24 @@ func TestListUsersRequiresTenantContext(t *testing.T) {
 	}
 }
 
+func setValidUsersTestCSRF(req *http.Request) {
+	req.AddCookie(&http.Cookie{Name: csrfCookieName, Value: "csrf-test"})
+	req.Header.Set("X-CSRF-Token", "csrf-test")
+}
+
+func TestUserWritesRequireCSRF(t *testing.T) {
+	a := New(Config{}, Dependencies{DB: openUsersTestDB(t)})
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/users", strings.NewReader(`{"email":"new@morfoschools.local","displayName":"New User","roleCodes":["teacher"]}`))
+	req = req.WithContext(WithSubject(req.Context(), Subject{UserID: "actor", TenantID: "tenant", Permissions: []string{"users:write"}}))
+
+	a.createUser(rec, req)
+
+	if rec.Code != http.StatusForbidden || !strings.Contains(rec.Body.String(), `"code":"csrf_failed"`) {
+		t.Fatalf("expected user write to require CSRF, got %d body=%s", rec.Code, rec.Body.String())
+	}
+}
+
 func TestCreateUserCreatesTenantMembershipRolesAndAudit(t *testing.T) {
 	db := openUsersTestDB(t)
 	seedUsersDirectoryFixture(t, db)
@@ -116,12 +135,15 @@ func TestCreateUserCreatesTenantMembershipRolesAndAudit(t *testing.T) {
 	rec := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/users", strings.NewReader(`{"email":"new.teacher@morfoschools.local","displayName":"New Teacher","roleCodes":["teacher"]}`))
 	req.Header.Set("Content-Type", "application/json")
-	req = req.WithContext(WithSubject(req.Context(), Subject{
+	setValidUsersTestCSRF(req)
+	ctx := WithSubject(req.Context(), Subject{
 		UserID:            "10000000-0000-7000-8000-000000000001",
 		TenantID:          "00000000-0000-7000-8000-000000000101",
 		EffectiveTenantID: "00000000-0000-7000-8000-000000000101",
 		Permissions:       []string{"users:write"},
-	}))
+	})
+	ctx = context.WithValue(ctx, requestIDKey, "req-create-user")
+	req = req.WithContext(ctx)
 
 	a.createUser(rec, req)
 
@@ -136,11 +158,37 @@ func TestCreateUserCreatesTenantMembershipRolesAndAudit(t *testing.T) {
 		t.Fatalf("unexpected created membership: id=%q status=%q role=%q", membershipID, status, roleCode)
 	}
 	var auditCount int
-	if err := db.QueryRow(`SELECT COUNT(*) FROM audit_events WHERE tenant_id='00000000-0000-7000-8000-000000000101' AND actor_user_id='10000000-0000-7000-8000-000000000001' AND action='users.create'`).Scan(&auditCount); err != nil {
+	if err := db.QueryRow(`SELECT COUNT(*) FROM audit_events WHERE tenant_id='00000000-0000-7000-8000-000000000101' AND actor_user_id='10000000-0000-7000-8000-000000000001' AND request_id='req-create-user' AND action='users.create' AND resource_type='user'`).Scan(&auditCount); err != nil {
 		t.Fatalf("audit lookup failed: %v", err)
 	}
 	if auditCount != 1 {
-		t.Fatalf("expected one users.create audit event, got %d", auditCount)
+		t.Fatalf("expected one fully attributed users.create audit event, got %d", auditCount)
+	}
+}
+
+func TestCreateUserAllowsPlatformAdminTenantHeader(t *testing.T) {
+	db := openUsersTestDB(t)
+	seedUsersDirectoryFixture(t, db)
+	a := New(Config{}, Dependencies{DB: db})
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/users", strings.NewReader(`{"email":"platform.created@morfoschools.local","displayName":"Platform Created","roleCodes":["teacher"]}`))
+	req.Header.Set("X-Tenant-ID", "00000000-0000-7000-8000-000000000101")
+	setValidUsersTestCSRF(req)
+	ctx := WithSubject(req.Context(), Subject{UserID: "10000000-0000-7000-8000-000000000001", Permissions: []string{"platform:admin"}})
+	ctx = context.WithValue(ctx, requestIDKey, "req-platform-create-user")
+	req = req.WithContext(ctx)
+
+	a.createUser(rec, req)
+
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("expected platform admin create with X-Tenant-ID to succeed, got %d body=%s", rec.Code, rec.Body.String())
+	}
+	var tenantID string
+	if err := db.QueryRow(`SELECT tm.tenant_id FROM users u JOIN tenant_memberships tm ON tm.user_id=u.id WHERE u.email='platform.created@morfoschools.local'`).Scan(&tenantID); err != nil {
+		t.Fatalf("created platform user membership missing: %v", err)
+	}
+	if tenantID != "00000000-0000-7000-8000-000000000101" {
+		t.Fatalf("expected header tenant membership, got %s", tenantID)
 	}
 }
 
@@ -150,6 +198,7 @@ func TestCreateUserRejectsRoleOutsideEffectiveTenant(t *testing.T) {
 	a := New(Config{}, Dependencies{DB: db})
 	rec := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/users", strings.NewReader(`{"email":"bad@morfoschools.local","displayName":"Bad User","roleCodes":["master_admin"]}`))
+	setValidUsersTestCSRF(req)
 	req = req.WithContext(WithSubject(req.Context(), Subject{
 		UserID:            "10000000-0000-7000-8000-000000000001",
 		TenantID:          "00000000-0000-7000-8000-000000000101",
@@ -161,6 +210,100 @@ func TestCreateUserRejectsRoleOutsideEffectiveTenant(t *testing.T) {
 
 	if rec.Code != http.StatusBadRequest || !strings.Contains(rec.Body.String(), `"code":"role_not_found"`) {
 		t.Fatalf("expected tenant-scoped role validation, got %d body=%s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestUpdateUserChangesDisplayNameRolesAndAuditsWithinTenant(t *testing.T) {
+	db := openUsersTestDB(t)
+	seedUsersDirectoryFixture(t, db)
+	a := New(Config{}, Dependencies{DB: db})
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPatch, "/api/v1/users/10000000-0000-7000-8000-000000000002", strings.NewReader(`{"displayName":"Teacher Updated","roleCodes":["school_admin"]}`))
+	setValidUsersTestCSRF(req)
+	req.SetPathValue("id", "10000000-0000-7000-8000-000000000002")
+	req = req.WithContext(WithSubject(req.Context(), Subject{
+		UserID:            "10000000-0000-7000-8000-000000000001",
+		TenantID:          "00000000-0000-7000-8000-000000000101",
+		EffectiveTenantID: "00000000-0000-7000-8000-000000000101",
+		Permissions:       []string{"users:write"},
+	}))
+
+	a.updateUser(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d body=%s", rec.Code, rec.Body.String())
+	}
+	var displayName, roleCode string
+	if err := db.QueryRow(`SELECT u.display_name, r.code FROM users u JOIN tenant_memberships tm ON tm.user_id=u.id JOIN user_roles ur ON ur.membership_id=tm.id JOIN roles r ON r.id=ur.role_id WHERE u.id='10000000-0000-7000-8000-000000000002' AND tm.tenant_id='00000000-0000-7000-8000-000000000101'`).Scan(&displayName, &roleCode); err != nil {
+		t.Fatalf("updated user lookup failed: %v", err)
+	}
+	if displayName != "Teacher Updated" || roleCode != "school_admin" {
+		t.Fatalf("expected updated display name and role, got displayName=%q role=%q", displayName, roleCode)
+	}
+	assertAuditCount(t, db, "users.update", 1)
+}
+
+func TestDeactivateUserArchivesMembershipAndAuditsWithoutCrossTenantLeak(t *testing.T) {
+	db := openUsersTestDB(t)
+	seedUsersDirectoryFixture(t, db)
+	a := New(Config{}, Dependencies{DB: db})
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPatch, "/api/v1/users/10000000-0000-7000-8000-000000000003/deactivate", nil)
+	setValidUsersTestCSRF(req)
+	req.SetPathValue("id", "10000000-0000-7000-8000-000000000003")
+	req = req.WithContext(WithSubject(req.Context(), Subject{
+		UserID:            "10000000-0000-7000-8000-000000000001",
+		TenantID:          "00000000-0000-7000-8000-000000000101",
+		EffectiveTenantID: "00000000-0000-7000-8000-000000000101",
+		Permissions:       []string{"users:write"},
+	}))
+
+	a.deactivateUser(rec, req)
+
+	if rec.Code != http.StatusNotFound || !strings.Contains(rec.Body.String(), `"code":"user_not_found"`) {
+		t.Fatalf("expected cross-tenant deactivate denial, got %d body=%s", rec.Code, rec.Body.String())
+	}
+	var status string
+	if err := db.QueryRow(`SELECT status FROM tenant_memberships WHERE user_id='10000000-0000-7000-8000-000000000003'`).Scan(&status); err != nil {
+		t.Fatalf("other tenant membership lookup failed: %v", err)
+	}
+	if status != "active" {
+		t.Fatalf("cross tenant membership was modified: %s", status)
+	}
+
+	rec = httptest.NewRecorder()
+	req = httptest.NewRequest(http.MethodPatch, "/api/v1/users/10000000-0000-7000-8000-000000000002/deactivate", nil)
+	setValidUsersTestCSRF(req)
+	req.SetPathValue("id", "10000000-0000-7000-8000-000000000002")
+	req = req.WithContext(WithSubject(req.Context(), Subject{
+		UserID:            "10000000-0000-7000-8000-000000000001",
+		TenantID:          "00000000-0000-7000-8000-000000000101",
+		EffectiveTenantID: "00000000-0000-7000-8000-000000000101",
+		Permissions:       []string{"users:write"},
+	}))
+
+	a.deactivateUser(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d body=%s", rec.Code, rec.Body.String())
+	}
+	if err := db.QueryRow(`SELECT status FROM tenant_memberships WHERE user_id='10000000-0000-7000-8000-000000000002' AND tenant_id='00000000-0000-7000-8000-000000000101'`).Scan(&status); err != nil {
+		t.Fatalf("deactivated membership lookup failed: %v", err)
+	}
+	if status != "archived" {
+		t.Fatalf("expected tenant membership archived, got %s", status)
+	}
+	assertAuditCount(t, db, "users.deactivate", 1)
+}
+
+func assertAuditCount(t *testing.T, db *sql.DB, action string, expected int) {
+	t.Helper()
+	var count int
+	if err := db.QueryRow(`SELECT COUNT(*) FROM audit_events WHERE tenant_id='00000000-0000-7000-8000-000000000101' AND actor_user_id='10000000-0000-7000-8000-000000000001' AND action=?`, action).Scan(&count); err != nil {
+		t.Fatalf("audit lookup failed: %v", err)
+	}
+	if count != expected {
+		t.Fatalf("expected %d %s audit events, got %d", expected, action, count)
 	}
 }
 

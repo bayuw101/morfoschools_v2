@@ -99,7 +99,7 @@ describe("backend auth client", () => {
     const value = await loginWithPassword(creds, { fetcher, storage: storageStub });
 
     expect(fetcher).toHaveBeenCalledWith(
-      "http://localhost:8080/api/v1/auth/login",
+      "http://127.0.0.1:18080/api/v1/auth/login",
       expect.objectContaining({
         method: "POST",
         credentials: "include",
@@ -183,16 +183,19 @@ describe("backend auth client", () => {
 
     await logout({ fetcher, storage: storageStub });
     storeSession(session({ csrfToken: "csrf_saved", roles: ["master_admin"], role: "master_admin" }), storageStub);
-    await switchTenant("t2", { fetcher, storage: storageStub });
+    const switched = await switchTenant("t2", { fetcher, storage: storageStub });
+
+    expect(switched).toMatchObject({ tenantId: "t2", effectiveTenantId: "t2", tenantName: "Other", isActingAsTenant: true });
+    expect(getSession(storageStub)).toMatchObject({ tenantId: "t2", effectiveTenantId: "t2", tenantName: "Other" });
 
     expect(fetcher).toHaveBeenNthCalledWith(
       1,
-      "http://localhost:8080/api/v1/auth/logout",
+      "http://127.0.0.1:18080/api/v1/auth/logout",
       expect.objectContaining({ headers: { "X-CSRF-Token": "csrf_saved" } }),
     );
     expect(fetcher).toHaveBeenNthCalledWith(
       2,
-      "http://localhost:8080/api/v1/auth/switch-tenant",
+      "http://127.0.0.1:18080/api/v1/auth/switch-tenant",
       expect.objectContaining({ headers: expect.objectContaining({ "X-CSRF-Token": "csrf_saved" }) }),
     );
   });

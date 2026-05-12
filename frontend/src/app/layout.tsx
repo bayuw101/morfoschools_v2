@@ -25,7 +25,7 @@ const themeInitScript = `
 (function () {
   try {
     var storageKey = "morfoschools-theme-v1";
-    var fallback = { mode: "dark", palette: "morfosis" };
+    var fallback = { mode: "light", palette: "morfosis" };
     var allowedPalettes = {
       morfosis: true,
       "tokyo-night": true,
@@ -51,9 +51,9 @@ const themeInitScript = `
     root.dataset.palette = palette;
     root.style.colorScheme = mode;
   } catch (error) {
-    document.documentElement.dataset.theme = "dark";
+    document.documentElement.dataset.theme = "light";
     document.documentElement.dataset.palette = "morfosis";
-    document.documentElement.style.colorScheme = "dark";
+    document.documentElement.style.colorScheme = "light";
   }
 })();`;
 
@@ -63,7 +63,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="id" suppressHydrationWarning>
+    <html lang="id" data-theme="light" data-palette="morfosis" style={{ colorScheme: "light" }} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
       </head>

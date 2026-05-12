@@ -68,7 +68,7 @@ describe("api client", () => {
     } satisfies Partial<ApiError>);
   });
 
-  it("maps API errors to global and field form UI state", () => {
+  it("maps validation errors to field-only form UI state", () => {
     const error = new ApiError({
       status: 422,
       code: "validation_failed",
@@ -78,7 +78,7 @@ describe("api client", () => {
     });
 
     expect(mapApiErrorToFormState(error)).toEqual({
-      message: "Please fix the highlighted fields.",
+      message: null,
       fields: {
         email: "Email is required",
         password: "Too short Must contain number",
@@ -87,6 +87,54 @@ describe("api client", () => {
     expect(mapApiErrorToFormState(new Error("Network offline"))).toEqual({
       message: "Network offline",
       fields: {},
+    });
+  });
+
+  it("infers field-only errors from legacy validation messages without field payloads", () => {
+    expect(mapApiErrorToFormState(new ApiError({
+      status: 400,
+      code: "validation_failed",
+      message: "displayName and roleCodes are required",
+      payload: {},
+    }))).toEqual({
+      message: null,
+      fields: {
+        displayName: "Display name is required.",
+        roleCodes: "Select at least one role.",
+      },
+    });
+  });
+
+  it("maps academic setup and class section legacy validation messages to inline field errors", () => {
+    expect(mapApiErrorToFormState(new ApiError({
+      status: 400,
+      code: "validation_failed",
+      message: "valid school year, startsOn, endsOn, and status are required",
+      payload: {},
+    }))).toEqual({
+      message: null,
+      fields: {
+        code: "Code is required.",
+        startsOn: "Start date is required.",
+        endsOn: "End date is required.",
+        status: "Status is required.",
+      },
+    });
+
+    expect(mapApiErrorToFormState(new ApiError({
+      status: 400,
+      code: "validation_failed",
+      message: "valid academicYearId, code, name, gradeLevel, and status are required",
+      payload: {},
+    }))).toEqual({
+      message: null,
+      fields: {
+        academicYearId: "Academic year is required.",
+        code: "Code is required.",
+        name: "Name is required.",
+        gradeLevel: "Grade level is required.",
+        status: "Status is required.",
+      },
     });
   });
 

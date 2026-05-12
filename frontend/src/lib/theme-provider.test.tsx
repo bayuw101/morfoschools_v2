@@ -31,13 +31,13 @@ describe("ThemeProvider", () => {
         headers: { "Content-Type": "application/json" },
       });
     const serverMarkup = renderToString(
-      React.createElement(ThemeProvider, { fetcher }, React.createElement(ThemeProbe)),
+      React.createElement(ThemeProvider, { fetcher, children: React.createElement(ThemeProbe) }),
     );
     const clientView = render(
-      React.createElement(ThemeProvider, { fetcher }, React.createElement(ThemeProbe)),
+      React.createElement(ThemeProvider, { fetcher, children: React.createElement(ThemeProbe) }),
     );
 
-    expect(serverMarkup).toContain(">dark<");
+    expect(serverMarkup).toContain(">light<");
 
     await waitFor(() => {
       expect(clientView.getByTestId("theme-mode").textContent).toBe("light");
@@ -76,11 +76,11 @@ describe("ThemeProvider", () => {
     };
 
     const view = render(
-      React.createElement(
-        ThemeProvider,
-        { fetcher, sessionKey: "anonymous" },
-        React.createElement("div", null, "App"),
-      ),
+      React.createElement(ThemeProvider, {
+        fetcher,
+        sessionKey: "anonymous",
+        children: React.createElement("div", null, "App"),
+      }),
     );
 
     await waitFor(() => {
@@ -94,11 +94,11 @@ describe("ThemeProvider", () => {
     expect(document.documentElement.style.getPropertyValue("background")).toBe("");
 
     view.rerender(
-      React.createElement(
-        ThemeProvider,
-        { fetcher, sessionKey: "tenant-1:teacher" },
-        React.createElement("div", null, "App"),
-      ),
+      React.createElement(ThemeProvider, {
+        fetcher,
+        sessionKey: "tenant-1:teacher",
+        children: React.createElement("div", null, "App"),
+      }),
     );
 
     await waitFor(() => {

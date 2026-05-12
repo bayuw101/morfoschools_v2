@@ -1218,6 +1218,14 @@ ai_draft_questions
 - [ ] Audit events emitted for writes.
 - [ ] Module review notes written.
 
+**Implementation Note (2026-05-07):**
+
+- Completed ISSUE-032 foundation slice for backend Users API and frontend read directory.
+- Added OpenAPI Users contract and `docs/ai-tools/users.md` AI Tool Manifest.
+- Added module review note at `docs/rewrite/module-reviews/ISSUE-032-users.md`.
+- Verified backend docs contract, Users handler tests, full `go test ./...`, and `go build ./...`.
+- Follow-up remains for production form drawer mutations/loading and browser smoke before checking all ISSUE-032 acceptance boxes as done.
+
 ---
 
 ### ISSUE-033 — Manage Tenants/Schools module
@@ -1234,6 +1242,50 @@ ai_draft_questions
 - [ ] Only master admin can manage tenants globally.
 - [ ] Tenant CRUD is audited.
 - [ ] Tenant switch flow remains explicit.
+
+**Dependency Note (2026-05-08):**
+
+- ISSUE-032 can support school-admin user management with a seeded/current tenant, but its master-admin acceptance path depends on this tenant module plus the tenant switch/act-as context.
+- Before starting ISSUE-034/035, complete a minimum tenant onboarding slice so the SaaS journey is real: master admin creates a tenant, bootstraps the first school admin, switches/acts as that tenant, then manages users inside that selected tenant.
+
+---
+
+### ISSUE-033.1 — Tenant onboarding and first admin bootstrap
+
+**Goal:** Make the master-admin → new school tenant → first admin → tenant-scoped user management journey real before continuing to teachers/students.
+
+**Scope:**
+
+- Backend tenant create/update/status endpoints for master admin.
+- Default tenant theme/settings entry at tenant creation.
+- Default tenant role/permission seeding for the new tenant.
+- First school admin bootstrap linked to a real user identity, credential, membership, and `school_admin` role.
+- Master-admin act-as/tenant switch must preserve platform permissions while exposing the selected effective tenant.
+- Frontend tenant directory/onboarding entry point with loading, empty, error, create, and bootstrap states.
+- Module review note and AI Tool Manifest for tenant onboarding.
+
+**Acceptance Criteria:**
+
+- [x] Master admin can create a tenant without pre-existing tenant context.
+- [x] Tenant creation is audited with `tenants.create`.
+- [x] Newly created tenant has default theme/settings and tenant roles/permissions.
+- [x] Master admin can bootstrap the first school admin for that tenant.
+- [x] Bootstrap creates/links user identity, password credential, tenant membership, role assignment, and audit event.
+- [x] Master admin retains `platform:admin`, `tenants:read`, `tenants:switch`, and tenant management permissions after switching into an effective tenant.
+- [ ] Master admin can switch into the new tenant and use `/api/v1/users` against that effective tenant.
+- [ ] School admin can login to the new tenant and manage tenant users.
+- [ ] UI has no dummy tenant/user rows after API wiring; skeleton/empty/error states are explicit.
+- [ ] Browser smoke covers master admin login → create tenant → bootstrap admin → switch tenant → users directory.
+
+**Implementation Note (2026-05-08):**
+
+- Started after ISSUE-032 exposed the hidden dependency between master-admin user management and tenant onboarding.
+- Completed backend foundation slice for tenant onboarding: create tenant, default theme/settings, tenant default roles/permissions, first school-admin bootstrap, and audit events.
+- Fixed role/permission resolution so platform master permissions remain available when a master admin has selected an effective tenant.
+- Added docs contract coverage, OpenAPI tenant endpoints, Tenants AI Tool Manifest, and module review note at `docs/rewrite/module-reviews/ISSUE-033.1-tenant-onboarding.md`.
+- Verification: focused platform tenant tests, full backend `go test ./...`, and `go build ./...` pass.
+- Remaining before closing: frontend tenant onboarding UI, runtime switch/users path, school-admin login path, and browser smoke.
+- This issue is intentionally inserted before ISSUE-034/035 execution; do not mark ISSUE-032 fully complete until this bridge is done and the master-admin selected-tenant path passes.
 
 ---
 
@@ -1306,11 +1358,52 @@ ai_draft_questions
 
 ### ISSUE-038 — Academic Years and Terms module
 
+**Reorder Note (2026-05-11):**
+
+- After auditing the completed Users/Tenants bridge, academic structure should be activated before deep Teachers/Students profile work.
+- Reason: teacher homeroom/assignment and student enrollment flows need real academic years/terms/classes/subjects to avoid placeholder UI and later rewrites.
+- Persistent analysis lives at `docs/rewrite/ACADEMIC_STRUCTURE_REORDER_NOTE.md`.
+- Reordered recommended next executable task: plan and implement ISSUE-038 as the next vertical FE+BE slice, then continue to class sections/subjects before returning to teacher/student assignment-heavy work.
+
 **Acceptance Criteria:**
 
-- [ ] Admin can manage academic years and terms.
-- [ ] Active term can be selected.
-- [ ] RBAC/tenant scope enforced.
+- [x] Admin can manage academic years and terms.
+- [x] Active term can be selected.
+- [x] RBAC/tenant scope enforced.
+
+---
+
+## Append-only Verification Update — ISSUE-038 Academic Years/Terms Runtime Smoke (2026-05-11)
+
+Runtime smoke completed against local Docker Compose stack: frontend `http://127.0.0.1:1666`, backend `http://127.0.0.1:18080`, `/readyz` returned ready.
+
+Verified journey:
+
+- [x] School admin login via `/login` dev persona.
+- [x] `Academic Setup` nav item appears for allowed role.
+- [x] `/app/academic-setup` loads real backend data only; empty state renders with no dummy rows.
+- [x] Create academic year succeeds from pulled-right `FormDrawer`.
+- [x] Add term succeeds for created year; term drawer defaults date inputs from selected academic year using `YYYY-MM-DD` browser-safe values.
+- [x] Archive academic year succeeds through centered `ConfirmDialog`; list returns to empty state after archive.
+- [x] Toast feedback and drawer/confirm behavior match Users/Tenants patterns.
+
+Focused validation:
+
+```txt
+cd frontend && npm test -- --run src/lib/academic-api.test.ts src/config/navigation.test.ts
+cd frontend && npx tsc --noEmit
+cd backend && go test ./...
+```
+
+Results: all passed.
+
+Implementation note:
+
+- During browser smoke, term date defaults were normalized with `dateOnly(...)` in `frontend/src/app/(app)/app/academic-setup/academic-setup-page.tsx` so HTML date inputs never receive timestamp strings from backend rows.
+
+Next recommended executable work:
+
+- Continue Phase 7 with ISSUE-039 Class Sections module, then ISSUE-040 Subjects, before returning to teacher/student assignment-heavy work.
 
 ---
 
@@ -1648,3 +1741,184 @@ ai_draft_questions
 ## Unplanned Follow-up Issues
 
 _Add new issues here append-only when implementation reveals new work that does not belong to an existing parent issue._
+
+---
+
+### ISSUE-031.1 — Reconcile issue file status and Phase 6 execution template
+
+**Priority:** 🔴 Critical
+**Estimated Effort:** 0.5d
+**Depends on:** ISSUE-012, ISSUE-013, ISSUE-014, ISSUE-016, ISSUE-031
+**Status:** [x] Done
+
+**Why this exists:**
+
+The rewrite issue file has become the execution source of truth, but it now contains multiple rounds of handoff history. Several completed foundation issues include both newer `Completion Note (2026-05-07)` sections and older `Implementation Notes (2026-05-06)` sections. The older notes are useful historical evidence, but they should not be treated as the active implementation source of truth when they conflict with newer completion notes.
+
+Before Phase 6 CRUD modules begin, this file needs a lightweight append-only reconciliation pass so ISSUE-032 becomes the golden FE+BE module pattern instead of inheriting stale migration numbering, outdated validation notes, or inconsistent module review expectations.
+
+**Current Execution Snapshot (2026-05-07):**
+
+```txt
+Completed / accepted as current foundation:
+- Phase 0: ISSUE-000 through ISSUE-003
+- Phase 1: ISSUE-004 through ISSUE-007
+- Phase 1.5: ISSUE-008 through ISSUE-011
+- Phase 2: ISSUE-012 through ISSUE-017
+- Phase 3: ISSUE-018 through ISSUE-022
+- Phase 4: ISSUE-023 through ISSUE-026
+- Phase 5: ISSUE-027 through ISSUE-031
+
+Next implementation area:
+- Phase 6: ISSUE-032 Manage Users module
+
+Recommended prep before ISSUE-032:
+- ISSUE-067 Browser smoke test protocol
+- ISSUE-068 Security review protocol
+- ISSUE-069 Performance review protocol
+```
+
+**Known Reconciliation Notes:**
+
+- Treat latest dated `Completion Note` sections as stronger evidence than older `Implementation Notes` when there is conflict.
+- Do not delete older notes; preserve them as append-only history.
+- Migration numbering mentioned in older notes for ISSUE-028 through ISSUE-030 may be superseded by newer completion notes and should be verified against actual `backend/migrations/` before using in implementation.
+- ISSUE-023 says shared middleware exists and app migration may remain a follow-up. Before adding Phase 6 handlers, verify whether domain routes should use `internal/app` helpers, `internal/platform/middleware`, or a bridged stack.
+- ISSUE-025 OpenAPI/AI manifest conventions are mandatory for every backend module, but Phase 6+ issues do not yet repeat exact deliverable paths. Use the Phase 6 Definition of Done below.
+
+**Phase 6+ Module Definition of Done:**
+
+Every FE+BE module from ISSUE-032 onward must close with all of the following evidence:
+
+- [ ] Backend API implemented with tenant-scoped repository/service/handler boundaries.
+- [ ] Backend RBAC enforced server-side; frontend hiding is not counted as security.
+- [ ] Mutating actions emit audit events with actor, tenant/effective tenant, action, target, and request ID where applicable.
+- [ ] CSRF/idempotency expectations are respected for unsafe or retry-sensitive requests.
+- [ ] OpenAPI source of truth updated at `docs/api/openapi.yaml` or documented adjacent API note if OpenAPI refactor is intentionally deferred.
+- [ ] AI Tool Manifest note added under `docs/ai-tools/` for any module action that an AI agent may later invoke.
+- [ ] Frontend page uses real API data only; no dummy initial API rows.
+- [ ] Frontend includes skeleton, empty, error, loading, disabled, success, and destructive-confirmation states where relevant.
+- [ ] Forms use custom controlled validation patterns with Zod/react-hook-form for module forms; no native validation chrome.
+- [ ] Browser smoke evidence recorded, including login role, route, CRUD flow, RBAC denial, loading/error state, and logout/protected-route behavior where applicable.
+- [ ] Security review evidence recorded, including tenant isolation, RBAC, CSRF/session, audit, and sensitive-data checks.
+- [ ] Performance note recorded, including query/index review and frontend perceived-performance check.
+- [ ] Module review note written under `docs/rewrite/module-reviews/ISSUE-NNN-<module>.md`.
+- [ ] Backend tests and frontend tests/build relevant to the module pass, with command evidence in completion note.
+
+**Recommended Next Sequence:**
+
+```txt
+ISSUE-031.1 Reconcile issue status + module DoD
+    ├── ISSUE-067 Browser smoke test protocol
+    ├── ISSUE-068 Security review protocol
+    ├── ISSUE-069 Performance review protocol
+    └── ISSUE-032 Manage Users golden CRUD module
+            ├── ISSUE-033 Manage Tenants/Schools
+            ├── ISSUE-034 Manage Teachers
+            ├── ISSUE-035 Manage Students
+            ├── ISSUE-036 Manage Staff
+            └── ISSUE-037 Manage Guardians and student links
+```
+
+**ISSUE-032 Suggested Internal Breakdown:**
+
+- [ ] ISSUE-032.1: Users API contract, OpenAPI update, AI manifest note, and test plan.
+- [ ] ISSUE-032.2: Backend user repository/service/handlers with tenant scope, RBAC, audit, pagination/filtering, validation errors, and session-safe responses.
+- [ ] ISSUE-032.3: Frontend users directory with real API query, skeleton, empty, error, filters/search, pagination, and no dummy initial rows.
+- [ ] ISSUE-032.4: Create/edit/deactivate user flows using custom form drawer/dialog patterns, Zod validation, loading states, optimistic or refetch strategy, and professional errors.
+- [ ] ISSUE-032.5: Tenant membership and role assignment UX with safe RBAC boundaries and confirmation/audit for sensitive changes.
+- [ ] ISSUE-032.6: Browser smoke, security review, performance note, module review doc, and completion note.
+
+**Acceptance Criteria:**
+
+- [x] Current execution snapshot is accepted before ISSUE-032 coding starts.
+- [x] Conflicting older notes are explicitly treated as historical unless re-verified against source files.
+- [x] Phase 6+ Module Definition of Done is used for ISSUE-032 and later modules.
+- [x] ISSUE-067/068/069 are either completed as lightweight templates before ISSUE-032 or explicitly folded into ISSUE-032.6 with user approval.
+- [x] ISSUE-032 is treated as the golden CRUD module pattern for subsequent Phase 6/7 modules.
+
+**Completion Note (2026-05-07):**
+
+- Added locked execution template at `docs/rewrite/GOLDEN_CRUD_PATTERN.md` for ISSUE-032 and later FE+BE modules.
+- Added lightweight review protocols required by the golden CRUD pattern:
+  - `docs/rewrite/BROWSER_SMOKE_PROTOCOL.md`
+  - `docs/security/SECURITY_REVIEW_PROTOCOL.md`
+  - `docs/rewrite/PERFORMANCE_REVIEW_PROTOCOL.md`
+- Added docs contract coverage in `backend/internal/platform/docscontract/docs_contract_test.go` so the golden CRUD pattern and protocol docs remain present.
+- ISSUE-067/068/069 are considered satisfied as lightweight protocol templates for the Phase 6 kickoff; each future module must still record module-specific smoke/security/performance evidence in its module review note.
+- ISSUE-032 Manage Users is now the next executable work and must be delivered as the golden CRUD module pattern.
+
+---
+
+## Current Issue Summary Table (append-only snapshot, 2026-05-07)
+
+| Range | Area | Current Status | Notes |
+|-------|------|----------------|-------|
+| ISSUE-000..003 | Phase 0 prototype audit + blueprint | [x] Done | Docs/source-of-truth foundation closed. |
+| ISSUE-004..007 | Phase 1 secure infra + DB foundation | [x] Done | Docker, backend, migrations, dev seed closed. |
+| ISSUE-008..011 | Phase 1.5 base UI parity | [x] Done | Login/app/gallery UI foundation approved. |
+| ISSUE-012..017 | Phase 2 auth/RBAC/theme | [x] Done | Security gate before Phase 6 appears closed; keep smoke evidence current. |
+| ISSUE-018..022 | Phase 3 frontend architecture | [x] Done | App shell, base UI, API client, AI sidecar shell closed. |
+| ISSUE-023..026 | Phase 4 backend architecture | [x] Done | Middleware/httpx/docs/testkit closed; verify route-stack integration before modules. |
+| ISSUE-027..031 | Phase 5 domain DB baseline | [x] Done | Profile, academic, courses, exams, AI runtime plan closed; verify actual migrations if conflicts appear. |
+| ISSUE-031.1 | Reconciliation + Phase 6 template | [x] Done | Golden CRUD template and protocol docs created. |
+| ISSUE-032..037 | Phase 6 user/school admin modules | [ ] Todo | ISSUE-032 should become golden CRUD module. |
+| ISSUE-038..043 | Phase 7 academic modules | [ ] Todo | Needs issue expansion before coding. |
+| ISSUE-044..048 | Phase 8 courses modules | [ ] Todo | Needs issue expansion before coding. |
+| ISSUE-049..057 | Phase 9/10 exam management + critical path | [ ] Todo | Needs stricter reliability/idempotency/offline test plan before coding. |
+| ISSUE-058..060 | Phase 11 teacher operations | [ ] Todo | Depends on exam critical path data. |
+| ISSUE-061..066 | Phase 12 AI runtime | [ ] Todo | Must remain outside exam critical path. |
+| ISSUE-067..069 | Cross-cutting protocols | [x] Done | Lightweight templates created; per-module evidence still required. |
+
+**Immediate prep before ISSUE-032:** completed on 2026-05-07.
+
+**Recommended next executable work:** Implement ISSUE-032 Manage Users as the golden FE+BE CRUD module using `docs/rewrite/GOLDEN_CRUD_PATTERN.md` and the smoke/security/performance protocols.
+
+
+---
+
+## Append-only Verification Update (2026-05-11)
+
+Runtime smoke completed against local stack: frontend `http://127.0.0.1:1666`, backend `http://127.0.0.1:18080`, `/readyz` returned ready for database, NATS, and Valkey.
+
+Evidence command:
+
+```txt
+bash /tmp/morfoschools_gate_smoke.sh
+```
+
+Verified journey:
+
+- [x] Master admin login with `master.admin@morfoschools.local`.
+- [x] Tenant create via `/api/v1/platform/tenants`.
+- [x] Tenant edit via `/api/v1/platform/tenants/{id}`.
+- [x] Tenant admin bootstrap via `/api/v1/platform/tenants/{id}/bootstrap-admin`.
+- [x] Master admin switch tenant via `/api/v1/auth/switch-tenant`.
+- [x] Master admin users CRUD in switched tenant via `/api/v1/users`.
+- [x] Bootstrapped school admin login with new tenant context.
+- [x] School admin tenant-scoped users CRUD via `/api/v1/users`.
+
+Smoke proof:
+
+```txt
+OK master login
+OK tenant create
+OK tenant edit
+OK bootstrap school admin
+OK master switch tenant
+OK master list users in switched tenant
+OK master create tenant user
+OK master update tenant user
+OK master deactivate tenant user
+OK school admin login
+OK school admin list tenant users
+OK school admin create tenant user
+OK school admin update tenant user
+OK school admin deactivate tenant user
+SMOKE_SUMMARY tenant_id=f16b8eb3-891c-43c9-8f62-c831a3dac030 tenant_code=gate-20260511184340 admin_email=admin.20260511184340@gate-smoke.local master_user=master.user.20260511184340@gate-smoke.local school_user=school.user.20260511184340@gate-smoke.local
+```
+
+Notes:
+
+- `switch-tenant` intentionally preserves the existing CSRF cookie and does not return a new `csrfToken`; clients must keep using the original session CSRF token after switching context.
+- Newly created tenants currently seed default tenant roles: `school_admin`, `teacher`, and `student`. Smoke uses `student` + `teacher`; `parent` is not available on newly created tenants unless seeded later.

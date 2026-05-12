@@ -30,7 +30,7 @@ export function UserButton() {
   const resolvedHandle = session?.email?.split("@")[0] ?? "";
   const resolvedEmail = session?.email ?? "";
   const resolvedRole = session?.role ?? "";
-  const resolvedTenant = session?.tenantName ?? "";
+  const resolvedTenant = session?.tenantName || (session?.roles?.includes("master_admin") ? "Platform mode · no active tenant" : "No active tenant selected");
   const initials = getInitials(resolvedName);
 
   React.useEffect(() => {

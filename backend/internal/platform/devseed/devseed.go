@@ -48,6 +48,8 @@ func Permissions() []Permission {
 		{ID: "20000000-0000-7000-8000-000000000001", Code: "platform:admin", Description: "Manage platform bootstrap and cross-tenant support."},
 		{ID: "20000000-0000-7000-8000-000000000002", Code: "tenant:admin", Description: "Manage tenant settings and users."},
 		{ID: "20000000-0000-7000-8000-000000000003", Code: "academic:manage", Description: "Manage academic structure and courses."},
+		{ID: "20000000-0000-7000-8000-000000000017", Code: "academic:read", Description: "Read tenant academic years and terms."},
+		{ID: "20000000-0000-7000-8000-000000000018", Code: "academic:write", Description: "Create, update, archive, and activate tenant academic years and terms."},
 		{ID: "20000000-0000-7000-8000-000000000004", Code: "courses:teach", Description: "Teach assigned courses."},
 		{ID: "20000000-0000-7000-8000-000000000005", Code: "learning:access", Description: "Access student learning surfaces."},
 		{ID: "20000000-0000-7000-8000-000000000006", Code: "guardian:view", Description: "View guardian-facing student progress."},
@@ -58,14 +60,17 @@ func Permissions() []Permission {
 		{ID: "20000000-0000-7000-8000-000000000011", Code: "tenants:switch", Description: "Switch effective tenant context for audited support."},
 		{ID: "20000000-0000-7000-8000-000000000012", Code: "users:read", Description: "Read tenant user directory."},
 		{ID: "20000000-0000-7000-8000-000000000013", Code: "users:write", Description: "Create, update, deactivate, and assign tenant users."},
+		{ID: "20000000-0000-7000-8000-000000000014", Code: "tenants:write", Description: "Create, update, and manage tenant lifecycle."},
+		{ID: "20000000-0000-7000-8000-000000000015", Code: "tenants:bootstrap", Description: "Bootstrap first tenant administrators."},
+		{ID: "20000000-0000-7000-8000-000000000016", Code: "tenants:delete", Description: "Archive tenants from the platform directory."},
 	}
 }
 
 func Roles() []Role {
 	return []Role{
-		{ID: "30000000-0000-7000-8000-000000000001", Code: "master_admin", Name: "Master Admin", Description: "Development platform administrator.", Permissions: []string{"platform:admin", "tenant:admin", "tenants:read", "tenants:switch", "users:read", "users:write"}},
-		{ID: "30000000-0000-7000-8000-000000000002", Code: "school_admin", Name: "School Admin", Description: "Development school administrator.", Permissions: []string{"tenant:admin", "academic:manage", "users:read", "users:write"}},
-		{ID: "30000000-0000-7000-8000-000000000003", Code: "academic_admin", Name: "Academic Admin", Description: "Development academic administrator.", Permissions: []string{"academic:manage"}},
+		{ID: "30000000-0000-7000-8000-000000000001", Code: "master_admin", Name: "Master Admin", Description: "Development platform administrator.", Permissions: []string{"platform:admin", "tenant:admin", "tenants:read", "tenants:switch", "tenants:write", "tenants:bootstrap", "tenants:delete", "users:read", "users:write"}},
+		{ID: "30000000-0000-7000-8000-000000000002", Code: "school_admin", Name: "School Admin", Description: "Development school administrator.", Permissions: []string{"tenant:admin", "academic:manage", "academic:read", "academic:write", "users:read", "users:write"}},
+		{ID: "30000000-0000-7000-8000-000000000003", Code: "academic_admin", Name: "Academic Admin", Description: "Development academic administrator.", Permissions: []string{"academic:manage", "academic:read", "academic:write"}},
 		{ID: "30000000-0000-7000-8000-000000000004", Code: "teacher", Name: "Teacher", Description: "Development teacher.", Permissions: []string{"courses:teach"}},
 		{ID: "30000000-0000-7000-8000-000000000005", Code: "student", Name: "Student", Description: "Development student.", Permissions: []string{"learning:access"}},
 		{ID: "30000000-0000-7000-8000-000000000011", Code: "parent", Name: "Parent", Description: "Development parent/guardian.", Permissions: []string{"guardian:view"}},

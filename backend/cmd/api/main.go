@@ -49,19 +49,43 @@ func main() {
 		}
 	}
 
+	appEnv := env("APP_ENV", "development")
+	localLogoDir := env("LOCAL_TENANT_LOGO_DIR", "")
+	publicLogoBaseURL := env("R2_PUBLIC_BASE_URL", "")
+	if publicLogoBaseURL == "" && localLogoDir != "" {
+		publicLogoBaseURL = env("PUBLIC_API_BASE_URL", "http://127.0.0.1:8080") + "/assets/tenant-logos"
+	}
 	cfg := app.Config{
-		ServiceName:   "morfoschools-api",
-		Port:          env("PORT", "8080"),
-		LogLevel:      env("LOG_LEVEL", "info"),
-		SecureCookies: env("SECURE_COOKIES", env("APP_ENV", "development")) == "true" || env("APP_ENV", "development") == "production",
+		ServiceName:        "morfoschools-api",
+		Port:               env("PORT", "8080"),
+		LogLevel:           env("LOG_LEVEL", "info"),
+		SecureCookies:      env("SECURE_COOKIES", appEnv) == "true" || appEnv == "production",
+		R2PublicBaseURL:    publicLogoBaseURL,
+		TenantLogoPrefix:   env("R2_TENANT_LOGO_PREFIX", "logo"),
+		LocalTenantLogoDir: localLogoDir,
+	}
+	logoStorage, err := app.NewR2TenantLogoStorage(ctx, app.R2LogoConfig{
+		Endpoint:        env("R2_ENDPOINT", ""),
+		AccessKeyID:     env("R2_ACCESS_KEY_ID", ""),
+		SecretAccessKey: env("R2_SECRET_ACCESS_KEY", ""),
+		Bucket:          env("R2_BUCKET", ""),
+	})
+	if err != nil {
+		log.Fatalf("configure tenant logo storage: %v", err)
+	}
+	if logoStorage == nil && appEnv != "production" && localLogoDir != "" {
+		logoStorage = app.NewLocalTenantLogoStorage(localLogoDir)
+		cfg.R2PublicBaseURL = env("PUBLIC_API_BASE_URL", "http://127.0.0.1:8080") + "/assets/tenant-logos"
+		log.Printf("tenant logo storage: using local development storage at %s", localLogoDir)
 	}
 
 	a := app.New(cfg, app.Dependencies{
-		DB:         db,
-		Database:   app.DependencyCheck{Name: "database", Check: dbPingCheck(db)},
-		Valkey:     app.DependencyCheck{Name: "valkey", Check: tcpCheckFromURL(env("VALKEY_URL", "redis://valkey:6379/0"), "6379")},
-		NATS:       app.DependencyCheck{Name: "nats", Check: tcpCheckFromURL(env("NATS_URL", "nats://nats:4222"), "4222")},
-		ThemeCache: app.NewValkeyThemeCache(env("VALKEY_URL", "redis://valkey:6379/0")),
+		DB:          db,
+		Database:    app.DependencyCheck{Name: "database", Check: dbPingCheck(db)},
+		Valkey:      app.DependencyCheck{Name: "valkey", Check: tcpCheckFromURL(env("VALKEY_URL", "redis://valkey:6379/0"), "6379")},
+		NATS:        app.DependencyCheck{Name: "nats", Check: tcpCheckFromURL(env("NATS_URL", "nats://nats:4222"), "4222")},
+		ThemeCache:  app.NewValkeyThemeCache(env("VALKEY_URL", "redis://valkey:6379/0")),
+		LogoStorage: logoStorage,
 	})
 
 	srv := &http.Server{

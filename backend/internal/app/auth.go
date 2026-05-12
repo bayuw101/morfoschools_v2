@@ -311,13 +311,15 @@ func (a *App) sessionByToken(ctx context.Context, token string) (sessionContext,
 	return s, nil
 }
 func (a *App) rolesAndPermissions(ctx context.Context, userID, tenantID string) ([]string, []string, error) {
-	query := `SELECT DISTINCT r.code, p.code FROM tenant_memberships tm JOIN user_roles ur ON ur.membership_id=tm.id JOIN roles r ON r.id=ur.role_id LEFT JOIN role_permissions rp ON rp.role_id=r.id LEFT JOIN permissions p ON p.id=rp.permission_id WHERE tm.user_id=$1::uuid AND tm.tenant_id=$2::uuid AND tm.status='active'`
-	args := []any{userID, tenantID}
-	if tenantID == "" {
-		query = `SELECT DISTINCT r.code, p.code FROM platform_user_roles pur JOIN roles r ON r.id=pur.role_id LEFT JOIN role_permissions rp ON rp.role_id=r.id LEFT JOIN permissions p ON p.id=rp.permission_id WHERE pur.user_id=$1::uuid`
-		args = []any{userID}
+	query := `SELECT DISTINCT r.code, p.code FROM platform_user_roles pur JOIN roles r ON r.id=pur.role_id LEFT JOIN role_permissions rp ON rp.role_id=r.id LEFT JOIN permissions p ON p.id=rp.permission_id WHERE pur.user_id=$1`
+	args := []any{userID}
+	if tenantID != "" {
+		query = `SELECT DISTINCT r.code, p.code FROM platform_user_roles pur JOIN roles r ON r.id=pur.role_id LEFT JOIN role_permissions rp ON rp.role_id=r.id LEFT JOIN permissions p ON p.id=rp.permission_id WHERE pur.user_id=$1
+			UNION
+			SELECT DISTINCT r.code, p.code FROM tenant_memberships tm JOIN user_roles ur ON ur.membership_id=tm.id JOIN roles r ON r.id=ur.role_id LEFT JOIN role_permissions rp ON rp.role_id=r.id LEFT JOIN permissions p ON p.id=rp.permission_id WHERE tm.user_id=$1 AND tm.tenant_id=$2 AND tm.status='active'`
+		args = []any{userID, tenantID}
 	}
-	rows, err := a.deps.DB.QueryContext(ctx, query+` ORDER BY r.code,p.code`, args...)
+	rows, err := a.deps.DB.QueryContext(ctx, query+` ORDER BY 1,2`, args...)
 	if err != nil {
 		return nil, nil, err
 	}
